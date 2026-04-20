@@ -18,8 +18,8 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="#24292E"
-            app:title="Code Aditor"
-            app:subtitle="Mis Proyectos"
+            app:title="@string/app_name"
+            app:subtitle="@string/My_projects"
             app:titleTextColor="@android:color/white"
             app:subtitleTextColor="#B0BEC5" />
 
@@ -39,7 +39,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
-            android:text="Conectar con GitHub"
+            android:text="@string/Connect_github"
             android:textColor="@color/gray"
             android:textStyle="bold"
             app:icon="@drawable/ic_githubconneccion"
@@ -60,7 +60,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:text="Nuevo Proyecto"
+        android:text="@string/New_project"
         android:textColor="@android:color/white"
         android:backgroundTint="#6200EE"
         app:icon="@android:drawable/ic_input_add"

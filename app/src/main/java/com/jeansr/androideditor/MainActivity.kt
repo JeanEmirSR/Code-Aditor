@@ -23,14 +23,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
+
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerProjects: RecyclerView
     private lateinit var projectAdapter: SimpleProjectAdapter
 
-    // Launcher para importar carpetas
+    // Launcher to import directories
     private val importProjectLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -43,12 +43,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Inicializar motor de archivos en segundo plano
+        // Initialize file engine in the background
         Thread { CompilerSetup.initEngineFiles(this) }.start()
 
         recyclerProjects = findViewById(R.id.recyclerProjects)
 
-        // CONFIGURACIÓN DEL ADAPTADOR (Pasa la vista para el Popup)
+        // ADAPTER CONFIGURATION (Pass the view for the Popup)
         projectAdapter = SimpleProjectAdapter(
             onProjectClick = { abrirProyecto(it) },
             onProjectLongClick = { proyecto, vista -> mostrarMenuOpciones(proyecto, vista) }
@@ -71,14 +71,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     // =========================================================================
-    // LÓGICA DEL MENÚ FLOTANTE (POPUPWINDOW)
+    // FLOATING MENU LOGIC (PopupWindow)
     // =========================================================================
 
     private fun mostrarMenuOpciones(proyecto: File, anchorView: View) {
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = inflater.inflate(R.layout.item_listopcion, null)
 
-        // Crear el Popup (WRAP_CONTENT para que se ajuste a tu diseño)
+        // Create the Popup Window
         val popup = PopupWindow(
             view,
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -86,11 +86,11 @@ class MainActivity : AppCompatActivity() {
             true
         )
 
-        // Permitir que se cierre al tocar fuera y añadir sombra
+        // Dismiss on outside touch and add shadow
         popup.elevation = 30f
         popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        // Configurar clics usando tus IDs
+
         view.findViewById<View>(R.id.Renameop).setOnClickListener {
             popup.dismiss()
             mostrarDialogoRenombrar(proyecto)
@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             confirmarEliminar(proyecto)
         }
 
-        // Mostrar "al ladito" (X offset para mover a la derecha, Y offset para centrar)
+
         popup.showAsDropDown(anchorView, 200, -anchorView.height / 4)
     }
 
@@ -111,36 +111,36 @@ class MainActivity : AppCompatActivity() {
             setPadding(60, 40, 60, 40)
         }
         AlertDialog.Builder(this)
-            .setTitle("Renombrar")
+            .setTitle(getString(R.string.Renameop))
             .setView(input)
-            .setPositiveButton("Guardar") { _, _ ->
+            .setPositiveButton(getString(R.string.Saveop)) { _, _ ->
                 val nuevoNombre = input.text.toString().trim()
                 if (nuevoNombre.isNotEmpty()) {
                     val nuevoFile = File(proyecto.parent, nuevoNombre)
                     if (proyecto.renameTo(nuevoFile)) cargarProyectos()
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.Cancelop), null)
             .show()
     }
 
     private fun confirmarEliminar(proyecto: File) {
         AlertDialog.Builder(this)
-            .setTitle("Borrar Proyecto")
-            .setMessage("¿Estás seguro de eliminar permanentemente ${proyecto.name}?")
-            .setPositiveButton("Sí, borrar") { _, _ ->
+            .setTitle(getString(R.string.Deleteop))
+            .setMessage("${getString(R.string.Deletesure)} ${proyecto.name}?")
+            .setPositiveButton(getString(R.string.ConfirmDeleteop)) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
                     if (proyecto.deleteRecursively()) {
                         withContext(Dispatchers.Main) { cargarProyectos() }
                     }
                 }
             }
-            .setNegativeButton("No", null)
+            .setNegativeButton(getString(R.string.No), null)
             .show()
     }
 
     // =========================================================================
-    // GESTIÓN DE ARCHIVOS
+    // FILE MANAGEMENT
     // =========================================================================
 
     private fun cargarProyectos() {
@@ -165,11 +165,11 @@ class MainActivity : AppCompatActivity() {
         val destinationDir = File(getExternalFilesDir("Projects"), sourceDir.name ?: "NuevoProyecto")
 
         if (destinationDir.exists()) {
-            Toast.makeText(this, "El proyecto ya existe", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.Projectalreadyexist), Toast.LENGTH_SHORT).show()
             return
         }
 
-        Toast.makeText(this, "Importando...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.ImportProject), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 copiarDirectorio(sourceDir, destinationDir)
@@ -197,11 +197,11 @@ class MainActivity : AppCompatActivity() {
         if (!token.isNullOrEmpty()) {
             startActivity(Intent(this, GithubControlActivity::class.java))
         } else {
-            val input = EditText(this).apply { hint = "Pega tu Token aquí" }
+            val input = EditText(this).apply { hint = getString(R.string.Pastetoken) }
             AlertDialog.Builder(this)
-                .setTitle("Conexión GitHub")
+                .setTitle(getString(R.string.Githubconection))
                 .setView(input)
-                .setPositiveButton("Guardar") { _, _ ->
+                .setPositiveButton(getString(R.string.Saveop)) { _, _ ->
                     sharedPref.edit().putString("GITHUB_TOKEN", input.text.toString()).apply()
                     startActivity(Intent(this, GithubControlActivity::class.java))
                 }.show()
@@ -211,7 +211,7 @@ class MainActivity : AppCompatActivity() {
 }
 
 // =============================================================================
-// ADAPTADOR COMPACTO
+// COMPACT ADAPTER
 // =============================================================================
 
 class SimpleProjectAdapter(

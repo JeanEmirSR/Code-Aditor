@@ -1,0 +1,20 @@
+<resources>
+
+    <!--Activity main-->
+    <string name="My_projects">Mis Proyectos</string>
+    <string name="New_project">Nuevo Proyecto</string>
+    <string name="Connect_github">Conectar con GitHub</string>
+    <string name="Renameop">Renombrar</string>
+    <string name="Deleteop">Eliminar Proyecto</string>
+    <string name="Cancelop">Cancelar</string>
+    <string name="Confirmop">Confirmar</string>
+    <string name="Saveop">Guardar</string>
+    <string name="Deletesure">¿Estás seguro de que deseas eliminar este proyecto permanentemente?</string>
+    <string name="ConfirmDeleteop">Sí, eliminar</string>
+    <string name="No">No</string>
+    <string name="Projectalreadyexist">El proyecto ya existe</string>
+    <string name="ImportProject">Importando proyecto...</string>
+    <string name="Pastetoken">Pega tu token de GitHub aquí</string>
+    <string name="InvalidToken">Token de GitHub inválido</string>
+    <string name="Githubconection">Conexión con GitHub</string>
+</resources>
