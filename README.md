@@ -1,4 +1,4 @@
-*Read this in other languages: [Español](README-es.md)*
+*Read this in other languages: [Español](README_es.md)*
 
 # Code Editor IDE for Android
 
