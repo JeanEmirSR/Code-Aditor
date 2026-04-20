@@ -14,7 +14,7 @@ A lightweight, powerful, and native Integrated Development Environment (IDE) des
 
 ## 🛠️ Technologies Used
 
-* **Language:** Kotlin / Java (depending on your current implementation).
+* **Language:** Kotlin
 * **Architecture:** MVVM (Model-View-ViewModel) for efficient separation of logic and UI.
 * **UI Components:** Material Design 3.
 * **Editing Engine:** Custom implementation for the efficient handling of large text files.
