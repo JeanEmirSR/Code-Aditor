@@ -1,22 +1,20 @@
-Code Editor IDE for Android
-Un entorno de desarrollo integrado (IDE) ligero, potente y nativo diseñado específicamente para dispositivos móviles. Este proyecto busca transformar la experiencia de programación en Android, ofreciendo herramientas que normalmente solo se encuentran en entornos de escritorio.
+*Read this in other languages: [Español](README-es.md)*
 
-🚀 Características Principales
-Resaltado de Sintaxis Dinámico: Soporte para múltiples lenguajes de programación con alto rendimiento.
+# Code Editor IDE for Android
 
-Gestión de Archivos: Explorador de archivos integrado para manejar proyectos complejos y múltiples directorios.
+A lightweight, powerful, and native Integrated Development Environment (IDE) designed specifically for mobile devices. This project aims to transform the programming experience on Android by offering tools typically only found in desktop environments.
 
-Consola Integrada: Terminal para ejecución de comandos y visualización de logs en tiempo real.
+## 🚀 Key Features
 
-Interfaz Adaptable: UI moderna y minimalista optimizada tanto para smartphones como para tablets.
+* **Dynamic Syntax Highlighting:** Support for multiple programming languages with high performance.
+* **File Management:** Integrated file explorer to handle complex projects and multiple directories.
+* **Integrated Console:** Terminal for command execution and real-time log visualization.
+* **Adaptable Interface:** Modern and minimalist UI optimized for both smartphones and tablets.
+* **Autocompletion:** Smart code suggestions to accelerate workflow.
 
-Autocompletado: Sugerencias de código inteligentes para acelerar el flujo de trabajo.
+## 🛠️ Technologies Used
 
-🛠️ Tecnologías Utilizadas
-Lenguaje: Kotlin / Java (según tu implementación actual).
-
-Arquitectura: MVVM (Model-View-ViewModel) para una separación de lógica y UI eficiente.
-
-Componentes de UI: Material Design 3.
-
-Motor de Edición: Implementación personalizada para el manejo eficiente de archivos de texto grandes.
+* **Language:** Kotlin / Java (depending on your current implementation).
+* **Architecture:** MVVM (Model-View-ViewModel) for efficient separation of logic and UI.
+* **UI Components:** Material Design 3.
+* **Editing Engine:** Custom implementation for the efficient handling of large text files.
