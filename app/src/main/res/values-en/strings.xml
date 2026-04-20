@@ -13,7 +13,7 @@
     <string name="ConfirmDeleteop">Yes, delete</string>
     <string name="No">No</string>
     <string name="Projectalreadyexist">The project already exists</string>
-    <string name="ImportProject">"Importing project...</string>
+    <string name="ImportProject">Importing project&#8230;</string>
     <string name="Pastetoken">Paste your GitHub token here</string>
     <string name="InvalidToken">Invalid GitHub token</string>
     <string name="Githubconection">GitHub Connection</string>
