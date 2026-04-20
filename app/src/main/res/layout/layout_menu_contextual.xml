@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:scrollbars="vertical"
+    android:fadeScrollbars="false"
+    >
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="200dp"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="#2B2B2B"
+    android:elevation="8dp"
+    android:paddingVertical="4dp"
+    android:scrollbars="vertical"
+    >
+
+
+    <LinearLayout android:id="@+id/itemMenuNuevo" android:layout_width="match_parent" android:layout_height="40dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="12dp">
+        <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/ic_addd" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Nuevo" android:textColor="#A9B7C6" android:layout_marginStart="8dp"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▶" android:textColor="#555555" android:textSize="10sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#3D3D3D" android:layout_marginVertical="4dp"/>
+
+    <TextView android:id="@+id/itemMenuCortar" style="@style/MenuContextualItem" android:text="Cortar" app:drawableStartCompat="@drawable/ic_cut"/>
+    <TextView android:id="@+id/itemMenuCopiar" style="@style/MenuContextualItem" android:text="Copiar" app:drawableStartCompat="@drawable/ic_copy"/>
+    <TextView android:id="@+id/itemMenuPegar" style="@style/MenuContextualItem" android:text="Pegar" app:drawableStartCompat="@drawable/ic_paste"/>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#3D3D3D" android:layout_marginVertical="4dp"/>
+
+    <TextView android:id="@+id/itemMenuRenombrar" style="@style/MenuContextualItem" android:text="Renombrar" app:drawableStartCompat="@drawable/ic_rename"/>
+    <TextView android:id="@+id/itemMenuEliminar" style="@style/MenuContextualItem" android:text="Eliminar" android:textColor="#FF6B68" app:drawableStartCompat="@drawable/ic_delete"/>
+</LinearLayout>
+</ScrollView>

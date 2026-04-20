@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#1E1E1E"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbarMerge"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#252525"
+        app:title="Resolver Conflicto"
+        app:titleTextColor="#FFFFFF"
+        app:navigationIcon="@drawable/ic_close_big" />
+
+    <TextView
+        android:id="@+id/tvConflictFilename"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text="Conflicto en: MainActivity.kt"
+        android:textColor="#EBCB8B"
+        android:background="#2B2B2B"
+        android:textStyle="bold"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:divider="?android:attr/dividerVertical"
+        android:showDividers="middle">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="LOCAL (Tuyo)"
+                android:textSize="10sp"
+                android:padding="4dp"
+                android:background="#2E3440"
+                android:textColor="#88C0D0"/>
+            <EditText
+                android:id="@+id/etMergeLocal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:gravity="top"
+                android:padding="8dp"
+                android:textColor="#D8DEE9"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:isScrollContainer="true"
+                android:focusable="false"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="REMOTE (Ellos)"
+                android:textSize="10sp"
+                android:padding="4dp"
+                android:background="#2E3440"
+                android:textColor="#BF616A"/>
+            <EditText
+                android:id="@+id/etMergeRemote"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:gravity="top"
+                android:padding="8dp"
+                android:textColor="#D8DEE9"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:isScrollContainer="true"
+                android:focusable="false"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#3B4252"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.2"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RESULTADO FINAL"
+            android:textSize="10sp"
+            android:padding="4dp"
+            android:background="#3B4252"
+            android:textColor="#A3BE8C"/>
+        <EditText
+            android:id="@+id/etMergeResult"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212"
+            android:gravity="top"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:scrollbars="vertical"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#252525">
+
+        <Button
+            android:id="@+id/btnAcceptLocal"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Usar Local"
+            android:textSize="10sp"
+            android:textColor="#88C0D0"/>
+
+        <Button
+            android:id="@+id/btnAcceptRemote"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Usar Remoto"
+            android:textSize="10sp"
+            android:textColor="#BF616A"/>
+
+        <Button
+            android:id="@+id/btnApplyMerge"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:text="RESOLVER"
+            android:backgroundTint="#4C566A"
+            android:textColor="#FFFFFF"/>
+    </LinearLayout>
+</LinearLayout>

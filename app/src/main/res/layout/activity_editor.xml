@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="#1E1E1E"
+    android:animateLayoutChanges="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/explorerPanel"
+        android:layout_width="220dp"
+        android:layout_height="match_parent"
+        android:background="#252526"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#2D2D30"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="EXPLORADOR"
+                android:textColor="#9E9E9E"
+                android:textSize="11sp"
+                android:letterSpacing="0.08"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnBackFolder"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                app:tint="#9E9E9E"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerFiles"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp" />
+        </HorizontalScrollView>
+
+        <LinearLayout
+            android:id="@+id/gitStatusBar"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:background="#1A1A2E"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/tvGitBranch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⎇ main"
+                android:textColor="#4EC9B0"
+                android:textSize="11sp" />
+            <TextView
+                android:id="@+id/tvGitChanges"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 cambios"
+                android:textColor="#9E9E9E"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/panelDivider"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="#333333" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#2D2D30"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnToggleExplorer"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:src="@drawable/ic_projectview"
+                android:padding="10dp" />
+
+            <LinearLayout
+                android:id="@+id/gitOpcions"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="?attr/selectableItemBackground"
+                android:paddingHorizontal="8dp"
+                android:clickable="true"
+                android:focusable="true">
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_githubconneccion"
+                    app:tint="#9E9E9E" />
+                <TextView
+                    android:id="@+id/tvToolbarBranch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="main"
+                    android:textColor="#9E9E9E"
+                    android:textSize="11sp" />
+                <View
+                    android:id="@+id/dotGitPending"
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/circle_orange"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvTabs"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                app:tabMode="scrollable"
+                app:tabIndicatorColor="#6200EE"
+                app:tabTextColor="#9E9E9E"
+                app:tabSelectedTextColor="#FFFFFF"
+                android:background="#2D2D30" />
+
+            <ImageButton
+                android:id="@+id/btnSave"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:src="@drawable/ic_save"
+                android:padding="10dp"
+                app:tint="#D4D4D4" />
+
+            <ImageButton
+                android:id="@+id/btnPreview"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:src="@drawable/ic_preview"
+                android:padding="10dp"
+                app:tint="#D4D4D4" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/fragment_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ScrollView
+                android:id="@+id/codeScrollContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true">
+
+                    <com.jeansr.androideditor.LineNumberEditText
+                        android:id="@+id/editorCodeArea"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:enabled="false"
+                        android:fontFamily="monospace"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine|textNoSuggestions"
+                        android:padding="16dp"
+                        android:textColor="#D4D4D4"
+                        android:textSize="14sp" />
+                </HorizontalScrollView>
+            </ScrollView>
+
+            <com.jeansr.androideditor.PreviewXml
+                android:id="@+id/previewContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/gitPanel"
+                android:layout_width="320dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:background="#252526"
+                android:elevation="25dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:background="#2D2D30"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="14dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="CONTROL DE FUENTE"
+                        android:textColor="#9E9E9E"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/btnCloseGitPanel"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        app:tint="#9E9E9E" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#1A1A2E"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/tvGitPanelBranch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="⎇ main"
+                        android:textColor="#4EC9B0" />
+
+                    <TextView
+                        android:id="@+id/tvGitPanelStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Conectado"
+                        android:textColor="#9E9E9E"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#2D2D30"
+                    android:padding="8dp">
+
+                    <Button
+                        android:id="@+id/btnGitPull"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_margin="2dp"
+                        android:layout_weight="1"
+                        android:text="Pull"
+                        android:textSize="10sp" />
+
+                    <Button
+                        android:id="@+id/btnGitPush"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_margin="2dp"
+                        android:layout_weight="1"
+                        android:text="Push"
+                        android:textSize="10sp" />
+
+                    <Button
+                        android:id="@+id/btnGitSync"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_margin="2dp"
+                        android:layout_weight="1"
+                        android:text="Sync"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/etCommitMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="10dp"
+                    android:background="#333333"
+                    android:hint="Mensaje..."
+                    android:padding="10dp"
+                    android:textColor="#FFFFFF" />
+
+                <Button
+                    android:id="@+id/btnGitCommit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="10dp"
+                    android:backgroundTint="#0E639C"
+                    android:text="Commit" />
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabGit"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:background="#2D2D30"
+                    app:tabIndicatorColor="#4EC9B0" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerGitItems"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#2D2D30"
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/quickSymbolBar"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp" />
+        </HorizontalScrollView>
+
+    </LinearLayout>
+</LinearLayout>
