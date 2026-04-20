@@ -19,9 +19,4 @@ A lightweight, powerful, and native Integrated Development Environment (IDE) des
 * **UI Components:** Material Design 3.
 * **Editing Engine:** Custom implementation for the efficient handling of large text files.
 
-* ## ⚖️ Licenses
 
-This project uses a split-licensing model to benefit both the open-source community and independent developers:
-
-* **IDE Source Code (Main App):** Licensed under [GNU GPLv3](LICENSE).
-* **Material 3 Components Library(m3_shared_library.apk):** Licensed under [Apache License 2.0](app/src/assets/LICENSE), allowing you to use it freely in your personal or commercial projects without restrictions.
