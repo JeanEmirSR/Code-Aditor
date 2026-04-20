@@ -13,7 +13,7 @@ Interfaz Adaptable: UI moderna y minimalista optimizada tanto para smartphones c
 Autocompletado: Sugerencias de código inteligentes para acelerar el flujo de trabajo.
 
 🛠️ Tecnologías Utilizadas
-Lenguaje: Kotlin / Java (según tu implementación actual).
+Lenguaje: Kotlin
 
 Arquitectura: MVVM (Model-View-ViewModel) para una separación de lógica y UI eficiente.
 
