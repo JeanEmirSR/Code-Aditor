@@ -96,7 +96,7 @@ class GitManager(
         }
     }
 
-    suspend fun obtenerArchivosCambiados(): List<GitChangedFile> = withContext(Dispatchers.IO) {
+    suspend fun getChangedFiles(): List<GitChangedFile> = withContext(Dispatchers.IO) {
         try {
             val gitDir = File(projectRoot, ".git")
             if (!gitDir.exists()) return@withContext emptyList()
@@ -187,7 +187,7 @@ class GitManager(
         }
     }
 
-    suspend fun obtenerCommitsLocales(limite: Int = 20): List<GitCommit> = withContext(Dispatchers.IO) {
+    suspend fun getLocaleCommits(limite: Int = 20): List<GitCommit> = withContext(Dispatchers.IO) {
         try {
             val gitDir = File(projectRoot, ".git")
             if (!gitDir.exists()) return@withContext emptyList()
@@ -227,7 +227,7 @@ class GitManager(
         push(token, owner, repo, branch)
     }
 
-    suspend fun obtenerCommitsGitHub(owner: String, repo: String, token: String, branch: String = "main", limite: Int = 20): List<GitCommit> = withContext(Dispatchers.IO) {
+    suspend fun getGitHubCommits(owner: String, repo: String, token: String, branch: String = "main", limite: Int = 20): List<GitCommit> = withContext(Dispatchers.IO) {
         try {
             // El secreto está aquí: &sha=$branch le dice a la API qué rama leer
             val url = URL("https://api.github.com/repos/$owner/$repo/commits?per_page=$limite&sha=$branch")
@@ -293,7 +293,7 @@ class GitManager(
     }
 
     // Lee las ramas directamente desde GitHub sin descargar el repositorio
-    suspend fun obtenerRamasRemotas(token: String, owner: String, repoName: String): List<String> = withContext(Dispatchers.IO) {
+    suspend fun getRemoteBranches(token: String, owner: String, repoName: String): List<String> = withContext(Dispatchers.IO) {
         try {
             val url = "https://github.com/$owner/$repoName.git"
             val refs = Git.lsRemoteRepository()
@@ -404,7 +404,7 @@ class GitManager(
             GitResult(false, "", e.message ?: "Error desconocido")
         }
     }
-    suspend fun obtenerArchivosEnConflicto(): List<String> = withContext(Dispatchers.IO) {
+    suspend fun getConflictingFiles(): List<String> = withContext(Dispatchers.IO) {
         try {
             Git.open(projectRoot).use { git ->
                 val status = git.status().call()

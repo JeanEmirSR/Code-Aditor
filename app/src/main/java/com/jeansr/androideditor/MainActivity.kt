@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { importarProyectoDesdeUri(it) }
+            result.data?.data?.let { setupProjectFromUri(it) }
         }
     }
 
@@ -50,31 +50,31 @@ class MainActivity : AppCompatActivity() {
 
         // ADAPTER CONFIGURATION (Pass the view for the Popup)
         projectAdapter = SimpleProjectAdapter(
-            onProjectClick = { abrirProyecto(it) },
-            onProjectLongClick = { proyecto, vista -> mostrarMenuOpciones(proyecto, vista) }
+            onProjectClick = { openProject(it) },
+            onProjectLongClick = { proyecto, vista -> showOptionsMenu(proyecto, vista) }
         )
 
         recyclerProjects.layoutManager = LinearLayoutManager(this)
         recyclerProjects.adapter = projectAdapter
 
-        findViewById<View>(R.id.btnGitHubLogin).setOnClickListener { mostrarDialogoGitHub() }
+        findViewById<View>(R.id.btnGitHubLogin).setOnClickListener { showGitHubDialog() }
         findViewById<View>(R.id.btnNuevoProyecto).setOnClickListener {
             importProjectLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
         }
 
-        cargarProyectos()
+        loadProjects()
     }
 
     override fun onResume() {
         super.onResume()
-        cargarProyectos()
+        loadProjects()
     }
 
     // =========================================================================
     // FLOATING MENU LOGIC (PopupWindow)
     // =========================================================================
 
-    private fun mostrarMenuOpciones(proyecto: File, anchorView: View) {
+    private fun showOptionsMenu(project: File, anchorView: View) {
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = inflater.inflate(R.layout.item_listopcion, null)
 
@@ -93,45 +93,45 @@ class MainActivity : AppCompatActivity() {
 
         view.findViewById<View>(R.id.Renameop).setOnClickListener {
             popup.dismiss()
-            mostrarDialogoRenombrar(proyecto)
+            showRenameDialog(project)
         }
 
         view.findViewById<View>(R.id.Deleteop).setOnClickListener {
             popup.dismiss()
-            confirmarEliminar(proyecto)
+            requestDeleteProject(project)
         }
 
 
         popup.showAsDropDown(anchorView, 200, -anchorView.height / 4)
     }
 
-    private fun mostrarDialogoRenombrar(proyecto: File) {
+    private fun showRenameDialog(project: File) {
         val input = EditText(this).apply {
-            setText(proyecto.name)
+            setText(project.name)
             setPadding(60, 40, 60, 40)
         }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.Renameop))
             .setView(input)
             .setPositiveButton(getString(R.string.Saveop)) { _, _ ->
-                val nuevoNombre = input.text.toString().trim()
-                if (nuevoNombre.isNotEmpty()) {
-                    val nuevoFile = File(proyecto.parent, nuevoNombre)
-                    if (proyecto.renameTo(nuevoFile)) cargarProyectos()
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    val newFile = File(project.parent, newName)
+                    if (project.renameTo(newFile)) loadProjects()
                 }
             }
             .setNegativeButton(getString(R.string.Cancelop), null)
             .show()
     }
 
-    private fun confirmarEliminar(proyecto: File) {
+    private fun requestDeleteProject(proyecto: File) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.Deleteop))
             .setMessage("${getString(R.string.Deletesure)} ${proyecto.name}?")
             .setPositiveButton(getString(R.string.ConfirmDeleteop)) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
                     if (proyecto.deleteRecursively()) {
-                        withContext(Dispatchers.Main) { cargarProyectos() }
+                        withContext(Dispatchers.Main) { loadProjects() }
                     }
                 }
             }
@@ -143,26 +143,26 @@ class MainActivity : AppCompatActivity() {
     // FILE MANAGEMENT
     // =========================================================================
 
-    private fun cargarProyectos() {
+    private fun loadProjects() {
         lifecycleScope.launch(Dispatchers.IO) {
             val savePath = getExternalFilesDir("Projects") ?: return@launch
-            val proyectos = savePath.listFiles { it.isDirectory }?.sortedByDescending { it.lastModified() } ?: emptyList()
+            val projects = savePath.listFiles { it.isDirectory }?.sortedByDescending { it.lastModified() } ?: emptyList()
             withContext(Dispatchers.Main) {
-                projectAdapter.actualizarDatos(proyectos)
+                projectAdapter.updateProjects(projects)
             }
         }
     }
 
-    private fun abrirProyecto(proyecto: File) {
+    private fun openProject(proyecto: File) {
         val intent = Intent(this, EditorActivity::class.java).apply {
             putExtra("PROJECT_PATH", proyecto.absolutePath)
         }
         startActivity(intent)
     }
 
-    private fun importarProyectoDesdeUri(uri: Uri) {
+    private fun setupProjectFromUri(uri: Uri) {
         val sourceDir = DocumentFile.fromTreeUri(this, uri) ?: return
-        val destinationDir = File(getExternalFilesDir("Projects"), sourceDir.name ?: "NuevoProyecto")
+        val destinationDir = File(getExternalFilesDir("Projects"), sourceDir.name ?: "New Project")
 
         if (destinationDir.exists()) {
             Toast.makeText(this, getString(R.string.Projectalreadyexist), Toast.LENGTH_SHORT).show()
@@ -172,18 +172,18 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, getString(R.string.ImportProject), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                copiarDirectorio(sourceDir, destinationDir)
-                withContext(Dispatchers.Main) { cargarProyectos() }
+                copyDirectory(sourceDir, destinationDir)
+                withContext(Dispatchers.Main) { loadProjects() }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
             }
         }
     }
 
-    private fun copiarDirectorio(source: DocumentFile, dest: File) {
+    private fun copyDirectory(source: DocumentFile, dest: File) {
         if (source.isDirectory) {
             dest.mkdirs()
-            source.listFiles().forEach { copiarDirectorio(it, File(dest, it.name)) }
+            source.listFiles().forEach { copyDirectory(it, File(dest, it.name)) }
         } else {
             contentResolver.openInputStream(source.uri)?.use { input ->
                 FileOutputStream(dest).use { output -> input.copyTo(output) }
@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun mostrarDialogoGitHub() {
+    private fun showGitHubDialog() {
         val sharedPref = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE)
         val token = sharedPref.getString("GITHUB_TOKEN", "")
         if (!token.isNullOrEmpty()) {
@@ -219,22 +219,21 @@ class SimpleProjectAdapter(
     private val onProjectLongClick: (File, View) -> Unit
 ) : RecyclerView.Adapter<SimpleProjectAdapter.ViewHolder>() {
 
-    private var proyectos = listOf<File>()
+    private var projects = listOf<File>()
 
-    fun actualizarDatos(n: List<File>) {
-        proyectos = n
+    fun updateProjects(n: List<File>) {
+        projects = n
         notifyDataSetChanged()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = TextView(parent.context).apply {
             textSize = 15f
-            setPadding(45, 30, 45, 30) // Padding compacto
+            setPadding(45, 30, 45, 30)
             setTextColor(Color.WHITE)
             setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folderproject, 0, 0, 0)
             compoundDrawablePadding = 35
 
-            // Efecto de selección (Ripple)
             val outValue = android.util.TypedValue()
             context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
             setBackgroundResource(outValue.resourceId)
@@ -247,15 +246,15 @@ class SimpleProjectAdapter(
     }
 
     override fun onBindViewHolder(h: ViewHolder, p: Int) {
-        val proj = proyectos[p]
+        val proj = projects[p]
         h.textView.text = proj.name
         h.itemView.setOnClickListener { onProjectClick(proj) }
         h.itemView.setOnLongClickListener {
-            onProjectLongClick(proj, it) // Pasa la vista para el Popup
+            onProjectLongClick(proj, it)
             true
         }
     }
 
-    override fun getItemCount() = proyectos.size
+    override fun getItemCount() = projects.size
     class ViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
 }

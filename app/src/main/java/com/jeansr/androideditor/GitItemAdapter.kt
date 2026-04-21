@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 /**
- * Adapter unificado para mostrar tanto archivos cambiados como commits en el panel git.
+ * Unified adapter to display both changed files and commits in the git panel.
  */
 class GitItemAdapter(
     private val onFileClick: (GitItem) -> Unit,
@@ -23,13 +23,13 @@ class GitItemAdapter(
 
     private val items = mutableListOf<GitItem>()
 
-    fun mostrarArchivos(archivos: List<GitManager.GitChangedFile>) {
+    fun showFiles(archivos: List<GitManager.GitChangedFile>) {
         items.clear()
         items.addAll(archivos.map { GitItem.FileItem(it) })
         notifyDataSetChanged()
     }
 
-    fun mostrarCommits(commits: List<GitManager.GitCommit>) {
+    fun showCommits(commits: List<GitManager.GitCommit>) {
         items.clear()
         items.addAll(commits.map { GitItem.CommitItem(it) })
         notifyDataSetChanged()
@@ -63,23 +63,23 @@ class GitItemAdapter(
     private fun bindFile(row: LinearLayout, item: GitItem.FileItem) {
         val ctx = row.context
 
-        // Indicador de estado (letra coloreada)
+        // Status indicator (colored letter)
         val tvStatus = TextView(ctx).apply {
-            val (letra, color) = when (item.file.status) {
+            val (char, color) = when (item.file.status) {
                 GitManager.GitFileStatus.MODIFIED -> "M" to "#E2C08D"
                 GitManager.GitFileStatus.ADDED    -> "A" to "#73C991"
                 GitManager.GitFileStatus.DELETED  -> "D" to "#F14C4C"
                 GitManager.GitFileStatus.RENAMED  -> "R" to "#4EC9B0"
                 GitManager.GitFileStatus.UNKNOWN  -> "?" to "#9E9E9E"
             }
-            text = letra
+            text = char
             setTextColor(Color.parseColor(color))
             textSize = 11f
             layoutParams = LinearLayout.LayoutParams(28, -2)
             gravity = Gravity.CENTER
         }
 
-        // Nombre del archivo
+        // Name file
         val tvName = TextView(ctx).apply {
             text = item.file.path.substringAfterLast("/")
             setTextColor(Color.parseColor("#D4D4D4"))
@@ -87,14 +87,14 @@ class GitItemAdapter(
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
         }
 
-        // Ruta padre (dimmer)
+        // Parent route (dimmer)
         val tvPath = TextView(ctx).apply {
             text = item.file.path.substringBeforeLast("/", "")
             setTextColor(Color.parseColor("#666666"))
             textSize = 11f
         }
 
-        // Botón stage/unstage
+        // Stage/unstage button
         val tvStage = TextView(ctx).apply {
             text = "+"
             setTextColor(Color.parseColor("#9E9E9E"))
@@ -112,7 +112,7 @@ class GitItemAdapter(
     private fun bindCommit(row: LinearLayout, item: GitItem.CommitItem) {
         val ctx = row.context
 
-        // SHA corto
+        // SHA short
         val tvSha = TextView(ctx).apply {
             text = item.commit.shortSha
             setTextColor(Color.parseColor("#4EC9B0"))
@@ -121,7 +121,7 @@ class GitItemAdapter(
             typeface = android.graphics.Typeface.MONOSPACE
         }
 
-        // Columna central: mensaje + autor
+        // Center column: message + author
         val col = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)

@@ -3,11 +3,8 @@ package com.jeansr.androideditor
 import SyntaxColorInfo
 import SyntaxHighlighter
 import TabAdapter
-import android.content.res.ColorStateList
-import java.util.Collections
 
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback
 import android.widget.PopupWindow
 import android.view.ViewGroup.LayoutParams
 import android.content.Context
@@ -15,7 +12,6 @@ import android.content.res.AssetManager
 import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
-import android.text.Editable
 import android.text.Spannable
 import android.text.style.ForegroundColorSpan
 import android.util.Log
@@ -33,27 +29,17 @@ import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.eclipse.jgit.util.FileUtils.mkdirs
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
-import com.jeansr.androideditor.R
-import java.io.InputStreamReader
-import java.nio.file.Files.exists
 // ── NUEVO GIT: imports adicionales ──
-import android.view.animation.AnimationUtils
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContentProviderCompat.requireContext
-
-import androidx.recyclerview.widget.DividerItemDecoration
-import com.google.android.material.tabs.TabLayout as MaterialTabLayout
 
 class EditorActivity : AppCompatActivity() {
 
     private val TAG = "EditorCompiler"
 
     // =========================================================================
-    // ESTADO Y PROPIEDADES
+    // STATE AND PROPERTIES
     // =========================================================================
 
     private enum class RenderMode { ORIGINAL, LINEAR, RELATIVE }
@@ -108,20 +94,20 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var gitItemAdapter: GitItemAdapter
 
     private val highlighter = SyntaxHighlighter()
-    private val handlerResaltado = android.os.Handler(android.os.Looper.getMainLooper())
-    private var runnableResaltado: Runnable? = null
-    private lateinit var textWatcherResaltado: android.text.TextWatcher
+    private val highlightingHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var highlightingRunnable: Runnable? = null
+    private lateinit var highlightingTextWatcher: android.text.TextWatcher
 
-    /// Variables globales en tu Activity para controlar que no se abran múltiples menús y acciones
-    private var archivoEnPortapapeles: File? = null
-    private var accionPortapapeles: String = "" // Guardará "copiar" o "cortar"
+    // State variables to prevent multiple menus and actions from opening
+    private var fileOnClipboard: File? = null
+    private var clipboardAccion: String = "" // Guardará "copiar" o "cortar"
 
-    private var popupPrincipal: PopupWindow? = null
-    private var popupNuevo: PopupWindow? = null
+    private var mainPopup: PopupWindow? = null
+    private var newPopup: PopupWindow? = null
 
 
     // =========================================================================
-    // CICLO DE VIDA
+    // LIFECYCLE
     // =========================================================================
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -134,12 +120,12 @@ class EditorActivity : AppCompatActivity() {
         recyclerFiles = findViewById(R.id.recyclerFiles)
         codeScrollContainer = findViewById(R.id.codeScrollContainer)
         previewContainer = findViewById(R.id.previewContainer)
-        rvTabs = findViewById(R.id.rvTabs) // Asegúrate que este ID esté en tu activity_editor.xml
-        configurarTabsRecyclerView()
+        rvTabs = findViewById(R.id.rvTabs)
+        setupTabsRecyclerView()
         quickSymbolBar = findViewById(R.id.quickSymbolBar)
         fragment_container = findViewById(R.id.fragment_container)
 
-        configurarConsola()
+        configureConsole()
 
         val projectPath = intent.getStringExtra("PROJECT_PATH") ?: return
         projectRoot = File(projectPath)
@@ -150,28 +136,28 @@ class EditorActivity : AppCompatActivity() {
             panelDivider.visibility = if (visible) View.GONE else View.VISIBLE
         }
 
-        findViewById<ImageButton>(R.id.btnSave).setOnClickListener { guardarArchivoActual() }
-        findViewById<ImageButton>(R.id.btnPreview).setOnClickListener { alternarVistaPrevia() }
+        findViewById<ImageButton>(R.id.btnSave).setOnClickListener { saveActualFile() }
+        findViewById<ImageButton>(R.id.btnPreview).setOnClickListener { switchPreview() }
 
-        configurarBarraDeSimbolos()
-        configurarTabsRecyclerView()
+        configureSymbolBar()
+        setupTabsRecyclerView()
 
         fileAdapter = FileAdapter(
-            onClick = { file -> manejarClicEnArbol(file) },
-            onLongClick = { view, file -> manejarLongClickEnArbol(view, file) }
+            onClick = { file -> handleFileTreeClick(file) },
+            onLongClick = { view, file -> handleFileTreeLongClick(view, file) }
         )
 
         recyclerFiles.layoutManager = LinearLayoutManager(this)
         recyclerFiles.adapter = fileAdapter
 
-        refrescarArbolArchivos()
+        refreshFileTree()
         inicializarGit()
-        configurarSyntaxHighlighting()
-        configurarScrollListener()
+        setupSyntaxHighlighting()
+        setupScrollListener()
 
-        lifecycleScope.launch(Dispatchers.IO) { prepararCompilador() }
+        lifecycleScope.launch(Dispatchers.IO) { setupCompiler() }
 
-        // --- CONEXIÓN CON EL COMPONENTE CUSTOM ---
+        // --- PREVIEW CONTAINER ---
         previewContainer.onModeChanged = { modo ->
             currentRenderMode = when(modo) {
                 "ORIGINAL" -> RenderMode.ORIGINAL
@@ -179,7 +165,7 @@ class EditorActivity : AppCompatActivity() {
                 else -> RenderMode.LINEAR
             }
             if (isShowingPreview) {
-                compilarVistaPreviaConRecursos()
+                compilePreviewWithResources()
             }
         }
 
@@ -188,10 +174,10 @@ class EditorActivity : AppCompatActivity() {
 
 
 
-    private fun configurarTabsRecyclerView() {
+    private fun setupTabsRecyclerView() {
         tabAdapter = TabAdapter(
-            onTabClick = { abrirArchivoEnPestana(it) },
-            onTabClose = { cerrarPestana(it) }
+            onTabClick = { openFileInTab(it) },
+            onTabClose = { colseTab(it) }
         )
 
         rvTabs.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -218,7 +204,7 @@ class EditorActivity : AppCompatActivity() {
                 viewHolder: RecyclerView.ViewHolder
             ) {
                 super.clearView(recyclerView, viewHolder)
-                // Sincronizamos tu lista global openTabs con el nuevo orden del adaptador
+
                 openTabs.clear()
                 openTabs.addAll(tabAdapter.openTabs)
             }
@@ -228,7 +214,7 @@ class EditorActivity : AppCompatActivity() {
     }
 
     // =========================================================================
-    // MOTOR DE RENDERIZADO
+    // RENDERING ENGINE
     // =========================================================================
     private fun log(mensaje: String, esError: Boolean = false) {
 
@@ -239,11 +225,11 @@ class EditorActivity : AppCompatActivity() {
     }
 
 
-    private fun compilarVistaPreviaConRecursos() {
+    private fun compilePreviewWithResources() {
         if (!aapt2File.exists() || !androidJarFile.exists()) return
-        val xmlCrudo = editorCodeArea.text.toString()
+        val rawXml = editorCodeArea.text.toString()
 
-        log("\n--- [INICIANDO COMPILACIÓN] ---")
+        log("\n--- [STARTING COMPILATION] ---")
 
         lifecycleScope.launch(Dispatchers.IO) {
             val tiempoInicio = System.currentTimeMillis()
@@ -255,9 +241,9 @@ class EditorActivity : AppCompatActivity() {
                 projResDir.copyRecursively(buildResDir, overwrite = true)
             } else { buildResDir.mkdirs() }
 
-            val xmlProcesado = procesarXmlParaPreview(xmlCrudo)
+            val processedXml = processXmlForPreview(rawXml)
             File(buildResDir, "layout").apply { mkdirs() }
-            File(buildResDir, "layout/preview_layout.xml").writeText(xmlProcesado)
+            File(buildResDir, "layout/preview_layout.xml").writeText(processedXml)
 
             val manifestFile = File(workspace, "AndroidManifest.xml")
             manifestFile.writeText("""
@@ -273,21 +259,21 @@ class EditorActivity : AppCompatActivity() {
             val outputApk = File(workspace, "preview.apk")
             val compiledZip = File(workspace, "compiled.zip")
 
-            val resCompile = ejecutarShell("${aapt2File.absolutePath} compile --dir ${buildResDir.absolutePath} -o ${compiledZip.absolutePath}")
+            val resCompile = runShell("${aapt2File.absolutePath} compile --dir ${buildResDir.absolutePath} -o ${compiledZip.absolutePath}")
             if (!resCompile.success) { log("[ERROR COMPILE]\n${resCompile.error}", true); return@launch }
 
             val linkCmd = "${aapt2File.absolutePath} link -I ${androidJarFile.absolutePath} -I ${materialLibFile.absolutePath} -o ${outputApk.absolutePath} --manifest ${manifestFile.absolutePath} ${compiledZip.absolutePath} --auto-add-overlay --allow-reserved-package-id --no-static-lib-packages"
-            val resLink = ejecutarShell(linkCmd)
+            val resLink = runShell(linkCmd)
             if (!resLink.success) { log("[ERROR LINK]\n${resLink.error}", true); return@launch }
 
-            log("> [ÉXITO] Mini-APK generado en ${System.currentTimeMillis() - tiempoInicio}ms.")
-            withContext(Dispatchers.Main) { inyectarYDibujar(outputApk.absolutePath) }
+            log("> [SUCCESS] Mini-APK generated in ${System.currentTimeMillis() - tiempoInicio}ms.")
+            withContext(Dispatchers.Main) { injectAndDraw(outputApk.absolutePath) }
         }
     }
 
-    private fun inyectarYDibujar(apkPath: String) {
+    private fun injectAndDraw(apkPath: String) {
         try {
-            log("> Inyectando APK...")
+            log("> Injecting APK...")
             val customAssetManager = AssetManager::class.java.getConstructor().newInstance()
             val addAssetPathMethod = AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
             addAssetPathMethod.isAccessible = true
@@ -297,7 +283,7 @@ class EditorActivity : AppCompatActivity() {
 
             val customResources = Resources(customAssetManager, resources.displayMetrics, resources.configuration)
             val resId = customResources.getIdentifier("preview_layout", "layout", "com.google.android.material")
-            if (resId == 0) { log("[ERROR] Layout no encontrado.", true); return }
+            if (resId == 0) { log("[ERROR] Layout not found.", true); return }
 
             val customContext = object : ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Light_NoActionBar) {
                 override fun getResources() = customResources
@@ -312,7 +298,7 @@ class EditorActivity : AppCompatActivity() {
 
             runOnUiThread {
                 try {
-                    // 1. Limpiamos el componente personalizado (tu PreviewXml)
+                    // 1. Clear the custom component (PreviewXml)
                     previewContainer.clear()
 
                     val inflater = LayoutInflater.from(customContext).cloneInContext(customContext)
@@ -393,7 +379,7 @@ class EditorActivity : AppCompatActivity() {
                         override fun onCreateView(name: String, context: Context, attrs: android.util.AttributeSet): View? = null
                     }
 
-                    // --- CAMBIO 1: Inflamos pero con MATCH_PARENT para el contenedor ---
+
                     val rootView = inflater.inflate(resId, previewContainer.contentArea, false)
                     rootView.layoutParams = FrameLayout.LayoutParams(-1, -1) // -1 es Match Parent
 
@@ -402,23 +388,23 @@ class EditorActivity : AppCompatActivity() {
                         rootView.overScrollMode = View.OVER_SCROLL_NEVER
                     }
 
-                    // 3. Mandamos la vista final al componente
+                    // Pass the final view to the component
                     previewContainer.setPreviewView(rootView)
 
-                    // --- CAMBIO 2: Forzamos al PreviewXml a recalcular el tamaño del teléfono ---
+                    // Force PreviewXml to recalculate device size
                     previewContainer.requestLayout()
                     previewContainer.invalidate()
 
-                    log("> [ÉXITO] Interfaz renderizada y ajustada.")
-                } catch (e: Exception) { log("[ERROR INFLADO] ${e.message}", true) }
+                    log("> [SUCCESS] Interface rendered and adjusted.")
+                } catch (e: Exception) { log("[[ERROR] Inflation failed] ${e.message}", true) }
             }
-        } catch (e: Exception) { log("[ERROR INYECCIÓN] ${e.message}", true) }
+        } catch (e: Exception) { log("[INJECTION ERROR] ${e.message}", true) }
     }
 
 
-    private fun procesarXmlParaPreview(xmlCrudo: String): String {
-        if (currentRenderMode == RenderMode.ORIGINAL || !xmlCrudo.contains("ConstraintLayout")) return xmlCrudo
-        var xml = xmlCrudo
+    private fun processXmlForPreview(rawXml: String): String {
+        if (currentRenderMode == RenderMode.ORIGINAL || !rawXml.contains("ConstraintLayout")) return rawXml
+        var xml = rawXml
         if (currentRenderMode == RenderMode.LINEAR) {
             xml = xml.replace("<androidx.constraintlayout.widget.ConstraintLayout", "<LinearLayout android:orientation=\"vertical\"")
             xml = xml.replace("</androidx.constraintlayout.widget.ConstraintLayout>", "</LinearLayout>")
@@ -431,18 +417,18 @@ class EditorActivity : AppCompatActivity() {
         return xml
     }
 
-    private fun alternarVistaPrevia() {
+    private fun switchPreview() {
         isShowingPreview = !isShowingPreview
         codeScrollContainer.visibility = if (isShowingPreview) View.GONE else View.VISIBLE
         previewContainer.visibility = if (isShowingPreview) View.VISIBLE else View.GONE
         tvConsole.visibility = if (isShowingPreview) View.VISIBLE else View.GONE
         if (isShowingPreview) {
-            compilarVistaPreviaConRecursos()
+            compilePreviewWithResources()
         }
     }
 
     // =========================================================================
-    // GESTIÓN DE ARCHIVOS, GIT Y UTILIDADES (MANTENIDO)
+    // FILE MANAGEMENT, GIT, AND UTILITIES
     // =========================================================================
 
     private var fullFileColorMap: List<SyntaxColorInfo>? = null
@@ -454,15 +440,11 @@ class EditorActivity : AppCompatActivity() {
         ejecutarResaltadoViewport()
 
         // 2. ESCANEO TOTAL EN SEGUNDO PLANO
-        backgroundJob?.cancel() // Cancelar escaneos anteriores
+        backgroundJob?.cancel()
         backgroundJob = lifecycleScope.launch(Dispatchers.Default) {
-            // Generamos el mapa de colores sin tocar la UI
             val nuevoMapa = highlighter.generateColorMap(content, ext)
-
             withContext(Dispatchers.Main) {
                 fullFileColorMap = nuevoMapa
-                // Una vez que tenemos el mapa, si el usuario hace scroll,
-                // el resaltado será instantáneo porque ya sabemos los índices.
                 log("> Jarvis Engine: Mapa de sintaxis completo.")
             }
         }
@@ -470,20 +452,20 @@ class EditorActivity : AppCompatActivity() {
 
      */
 
-    private fun configurarSyntaxHighlighting() {
-        textWatcherResaltado = object : android.text.TextWatcher {
+    private fun setupSyntaxHighlighting() {
+        highlightingTextWatcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                runnableResaltado?.let { handlerResaltado.removeCallbacks(it) }
-                runnableResaltado = Runnable { s?.let { ejecutarResaltadoViewport() } }
-                handlerResaltado.postDelayed(runnableResaltado!!, 150)
+                highlightingRunnable?.let { highlightingHandler.removeCallbacks(it) }
+                highlightingRunnable = Runnable { s?.let { runViewportHighlighting() } }
+                highlightingHandler.postDelayed(highlightingRunnable!!, 150)
             }
         }
-        editorCodeArea.addTextChangedListener(textWatcherResaltado)
+        editorCodeArea.addTextChangedListener(highlightingTextWatcher)
     }
 
-    private fun ejecutarResaltadoViewport() {
+    private fun runViewportHighlighting() {
         val layout = editorCodeArea.layout ?: return
         val content = editorCodeArea.text ?: return
         val ext = fileCurrentlyOpen?.extension ?: "txt"
@@ -496,13 +478,12 @@ class EditorActivity : AppCompatActivity() {
         val startOffset = layout.getLineStart((firstLine - 10).coerceAtLeast(0))
         val endOffset = layout.getLineEnd((lastLine + 50).coerceAtMost(editorCodeArea.lineCount - 1))
 
-        editorCodeArea.removeTextChangedListener(textWatcherResaltado)
+        editorCodeArea.removeTextChangedListener(highlightingTextWatcher)
 
         if (fullFileColorMap != null) {
-            // USA EL MAPA (Ultra rápido, no hay Regex aquí)
+
             val visibleColors = fullFileColorMap!!.filter { it.start >= startOffset && it.end <= endOffset }
 
-            // Limpiar spans viejos solo en el rango visible
             val oldSpans = content.getSpans(startOffset, endOffset, ForegroundColorSpan::class.java)
             oldSpans.forEach { content.removeSpan(it) }
 
@@ -510,55 +491,55 @@ class EditorActivity : AppCompatActivity() {
                 content.setSpan(ForegroundColorSpan(info.color), info.start, info.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         } else {
-            // MODO EMERGENCIA: Si el mapa no está listo, usa el highlighter normal para el viewport
+
             highlighter.applyHighlighting(content, ext, startOffset, endOffset)
         }
 
-        editorCodeArea.addTextChangedListener(textWatcherResaltado)
+        editorCodeArea.addTextChangedListener(highlightingTextWatcher)
     }
 
-    private fun configurarScrollListener() {
+    private fun setupScrollListener() {
         var lastScrollY = -1
 
         codeScrollContainer.viewTreeObserver.addOnScrollChangedListener {
             val currentScrollY = codeScrollContainer.scrollY
 
-            // Solo recalculamos si el scroll cambió significativamente (> 20px)
+
             if (Math.abs(currentScrollY - lastScrollY) > 20) {
                 lastScrollY = currentScrollY
 
-                handlerResaltado.removeCallbacks(runnableResaltado ?: Runnable {})
-                runnableResaltado = Runnable {
-                    if (!isShowingPreview) ejecutarResaltadoViewport()
+                highlightingHandler.removeCallbacks(highlightingRunnable ?: Runnable {})
+                highlightingRunnable = Runnable {
+                    if (!isShowingPreview) runViewportHighlighting()
                 }
 
-                // Aumentamos a 100ms para dar respiro al procesador en archivos como json.hpp
-                handlerResaltado.postDelayed(runnableResaltado!!, 100)
+
+                highlightingHandler.postDelayed(highlightingRunnable!!, 100)
             }
         }
     }
 
-    private fun cambiarFocoAPestana(file: File) {
+    private fun switchFocusToTab(file: File) {
         fileCurrentlyOpen = file
         val contenido = fileContentsMemory[file.absolutePath] ?: ""
         editorCodeArea.setText(contenido)
 
-        // Resaltado de sintaxis
-        editorCodeArea.post { ejecutarResaltadoViewport() }
+        // Syntax highlighting
+        editorCodeArea.post { runViewportHighlighting() }
 
-        // Actualizar visual del adaptador (Pestaña activa)
+        // Update adapter visual state (Active tab)
         tabAdapter.updateData(openTabs, file)
         val index = openTabs.indexOf(file)
         if (index != -1) rvTabs.smoothScrollToPosition(index)
 
-        // Sincronizar Preview
+        // Sync preview
         if (isShowingPreview) {
-            if (file.extension == "xml") compilarVistaPreviaConRecursos()
+            if (file.extension == "xml") compilePreviewWithResources()
             else previewContainer.clear()
         }
     }
 
-    private fun guardarArchivoActual() {
+    private fun saveActualFile() {
         fileCurrentlyOpen?.let { file ->
             val text = editorCodeArea.text.toString()
             lifecycleScope.launch(Dispatchers.IO) {
@@ -568,338 +549,333 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun refrescarArbolArchivos() {
-        val lista = construirArbol(projectRoot, 0)
-        fileAdapter.actualizarArchivos(lista, expandedFolders)
+    private fun refreshFileTree() {
+        val lista = buildTree(projectRoot, 0)
+        fileAdapter.updateFiles(lista, expandedFolders)
     }
 
-    private fun construirArbol(dir: File, depth: Int): List<Pair<File, Int>> {
+    private fun buildTree(dir: File, depth: Int): List<Pair<File, Int>> {
         val lista = mutableListOf<Pair<File, Int>>()
         val files = dir.listFiles()?.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() })) ?: return lista
         for (f in files) {
             lista.add(f to depth)
-            if (f.isDirectory && expandedFolders.contains(f.absolutePath)) lista.addAll(construirArbol(f, depth + 1))
+            if (f.isDirectory && expandedFolders.contains(f.absolutePath)) lista.addAll(buildTree(f, depth + 1))
         }
         return lista
     }
 
-    private fun manejarClicEnArbol(file: File) {
+    private fun handleFileTreeClick(file: File) {
         if (file.isDirectory) {
             if (expandedFolders.contains(file.absolutePath)) expandedFolders.remove(file.absolutePath)
             else expandedFolders.add(file.absolutePath)
-            refrescarArbolArchivos()
-        } else abrirArchivoEnPestana(file)
+            refreshFileTree()
+        } else openFileInTab(file)
     }
     //////////////////////////////////////////////////
     //------------------------------------------//
 
-    private fun ejecutarAccionArchivo(accion: String, fileDestino: File) {
-        when (accion) {
-            "copiar", "cortar" -> {
-                archivoEnPortapapeles = fileDestino
-                accionPortapapeles = accion
-                val verbo = if (accion == "copiar") "Copiado" else "Cortado"
-                log("$verbo al portapapeles: ${fileDestino.name}")
-                Toast.makeText(this, "$verbo: ${fileDestino.name}", Toast.LENGTH_SHORT).show()
+    private fun runFileAction(action: String, destinyFile: File) {
+        when (action) {
+            "copy", "cut" -> {
+                fileOnClipboard = destinyFile
+                clipboardAccion = action
+                if (action == "copy") {
+                    log("Copied to clipboard ${destinyFile.name}")
+                    Toast.makeText(this, "${getString(R.string.Copied)}: ${destinyFile.name}", Toast.LENGTH_SHORT).show()
+                }else{
+                    log("Cut to clipboard ${destinyFile.name}")
+                    Toast.makeText(this, "${getString(R.string.Cut)}: ${destinyFile.name}", Toast.LENGTH_SHORT).show()
+                }
+
             }
 
-            "pegar" -> {
-                val origen = archivoEnPortapapeles
+            "paste" -> {
+                val origen = fileOnClipboard
                 if (origen == null || !origen.exists()) {
-                    log("El portapapeles está vacío o el archivo original ya no existe.", true)
+                    log("Clipboard is empty or the original file no longer exists.", true)
                     return
                 }
 
-                val directorioPadre = if (fileDestino.isDirectory) fileDestino else fileDestino.parentFile
-                val archivoNuevo = File(directorioPadre, origen.name)
+                val fatherDirectory = if (destinyFile.isDirectory) destinyFile else destinyFile.parentFile
+                val newFile = File(fatherDirectory, origen.name)
 
-                if (archivoNuevo.exists()) {
-                    log("Ya existe un archivo con el nombre '${origen.name}' en esta carpeta.", true)
+                if (newFile.exists()) {
+                    log("A file with the name '${origen.name}' already exists in this folder.", true)
                     return
                 }
 
-                Toast.makeText(this, "Pegando...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this,getString(R.string.Paste), Toast.LENGTH_SHORT).show()
 
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        if (accionPortapapeles == "copiar") {
+                        if (clipboardAccion == "copy") {
                             if (origen.isDirectory) {
-                                origen.copyRecursively(archivoNuevo, true)
+                                origen.copyRecursively(newFile, true)
                             } else {
-                                origen.copyTo(archivoNuevo, true)
+                                origen.copyTo(newFile, true)
                             }
                             withContext(Dispatchers.Main) {
-                                log("Copiado con éxito en: ${directorioPadre.name}")
-                                refrescarArbolArchivos()
+                                log("Successfully copied to: ${fatherDirectory.name}")
+                                refreshFileTree()
                             }
                         }
-                        else if (accionPortapapeles == "cortar") {
-                            val movidoRapido = origen.renameTo(archivoNuevo)
-                            if (!movidoRapido) {
+                        else if (clipboardAccion == "cut") {
+                            val fastMoveElement = origen.renameTo(newFile)
+                            if (!fastMoveElement) {
                                 if (origen.isDirectory) {
-                                    origen.copyRecursively(archivoNuevo, true)
+                                    origen.copyRecursively(newFile, true)
                                     origen.deleteRecursively()
                                 } else {
-                                    origen.copyTo(archivoNuevo, true)
+                                    origen.copyTo(newFile, true)
                                     origen.delete()
                                 }
                             }
                             withContext(Dispatchers.Main) {
-                                log("Movido con éxito a: ${directorioPadre.name}")
-                                archivoEnPortapapeles = null
-                                accionPortapapeles = ""
-                                refrescarArbolArchivos()
+                                log("Successfully moved to: ${fatherDirectory.name}")
+                                fileOnClipboard = null
+                                clipboardAccion = ""
+                                refreshFileTree()
                             }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            log("Error al pegar: ${e.message}", true)
+                            log("Error pasting: ${e.message}", true)
                         }
                     }
                 }
             }
 
-            "eliminar" -> {
-                val tipo = if (fileDestino.isDirectory) "la carpeta" else "el archivo"
+            "Delete" -> {
+                val tipo = if (destinyFile.isDirectory) "directory" else "file"
 
                 android.app.AlertDialog.Builder(this)
-                    .setTitle("Eliminar")
-                    .setMessage("¿Estás seguro de que deseas eliminar permanentemente $tipo '${fileDestino.name}'?\nEsta acción no se puede deshacer.")
-                    .setPositiveButton("Eliminar") { _, _ ->
+                    .setTitle(getString(R.string.Delete))
+                    .setMessage("${getString(R.string.Deletesureelement)} $tipo '${destinyFile.name}'?\n${getString(R.string.Actionundo)}")
+                    .setPositiveButton(getString(R.string.Delete)) { _, _ ->
 
-                        Toast.makeText(this, "Eliminando...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this,getString(R.string.Deleting), Toast.LENGTH_SHORT).show()
 
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
-                                val exito = if (fileDestino.isDirectory) {
-                                    fileDestino.deleteRecursively()
+                                val successful = if (destinyFile.isDirectory) {
+                                    destinyFile.deleteRecursively()
                                 } else {
-                                    fileDestino.delete()
+                                    destinyFile.delete()
 
                                 }
                                 withContext(Dispatchers.Main) {
-                                    if (exito) {
-                                        log("$tipo '${fileDestino.name}' ha sido eliminado.")
-                                        refrescarArbolArchivos()
+                                    if (successful) {
+                                        log("$tipo '${destinyFile.name}' has been deleted.")
+                                        refreshFileTree()
                                     } else {
-                                        log("Error: No se pudo eliminar $tipo.", true)
+                                        log("Error: Could not delete $tipo.", true)
                                     }
                                 }
-                                // ── PROTECCIÓN DE PESTAÑAS (Centralizada) ──
+                                // ── TAB PROTECTION (Centralized) ──
 
-// 1. Filtramos cuáles archivos abiertos acaban de ser eliminados del disco
-                                val archivosCerrar = openTabs.filter {
-                                    it.absolutePath == fileDestino.absolutePath ||
-                                            it.absolutePath.startsWith(fileDestino.absolutePath + "/")
+                                // 1. Filter which open files have just been deleted from disk
+                                val closeFiles = openTabs.filter {
+                                    it.absolutePath == destinyFile.absolutePath ||
+                                            it.absolutePath.startsWith(destinyFile.absolutePath + "/")
                                 }
 
-// 2. Iteramos y le delegamos el trabajo a tu función principal
-                                archivosCerrar.forEach { archivo ->
-                                    cerrarPestana(archivo)
+                                // 2. Iterate and delegate the work to colseTab function
+                                closeFiles.forEach { archivo ->
+                                    colseTab(archivo)
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
-                                    log("Error al eliminar: ${e.message}", true)
+                                    log("Error trying to delete: ${e.message}", true)
                                 }
                             }
                         }
                     }
-                    .setNegativeButton("Cancelar", null)
+                    .setNegativeButton(getString(R.string.Deleteop), null)
                     .show()
             }
         }
     }
 
-    private fun mostrarDialogoRenombrar(file: File) {
+    private fun showRenameDialog(file: File) {
         val input = EditText(this)
         input.setText(file.name)
-        // Seleccionamos el texto para que sea fácil de borrar
         input.selectAll()
-
         android.app.AlertDialog.Builder(this)
-            .setTitle("Renombrar")
+            .setTitle(getString(R.string.Rename))
             .setView(input)
-            .setPositiveButton("Guardar") { _, _ ->
-                val nuevoNombre = input.text.toString().trim()
-                if (nuevoNombre.isNotEmpty() && nuevoNombre != file.name) {
-                    val nuevoArchivo = File(file.parent, nuevoNombre)
-                    if (file.renameTo(nuevoArchivo)) {
-                        log("Renombrado a: $nuevoNombre")
-                        refrescarArbolArchivos()
+            .setPositiveButton(getString(R.string.Saveop)) { _, _ ->
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty() && newName != file.name) {
+                    val newFile = File(file.parent, newName)
+                    if (file.renameTo(newFile)) {
+                        log("Rename to: $newName")
+                        refreshFileTree()
                     } else {
-                        log("Error al renombrar el archivo.", true)
+                        log("Error renaming file.", true)
                     }
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.Cancelop), null)
             .show()
     }
     //-----------------------------------------//
 
 
-    private fun manejarLongClickEnArbol(anchorView: View, archivoDestino: File) {
-        popupNuevo?.dismiss()
-        popupPrincipal?.dismiss()
+    private fun handleFileTreeLongClick(anchorView: View, archivoDestino: File) {
+        newPopup?.dismiss()
+        mainPopup?.dismiss()
 
         val inflater = layoutInflater
-        val vistaMenu = inflater.inflate(R.layout.layout_menu_contextual, null)
+        val menuView = inflater.inflate(R.layout.layout_contex_menu, null)
 
-        popupPrincipal = PopupWindow(
-            vistaMenu,
+        mainPopup = PopupWindow(
+            menuView,
             resources.getDimensionPixelSize(R.dimen.menu_ancho), // Define en dimens.xml ej. 200dp
             LayoutParams.WRAP_CONTENT,
             true // true = se cierra al tocar fuera
         )
-        popupPrincipal?.elevation = 16f
+        mainPopup?.elevation = 16f
 
         // --- LÓGICA DE DIRECTORIOS ---
-        // Si el usuario hace clic largo en un archivo, el submenú "Nuevo" debe crear el archivo
-        // en la carpeta padre de ese archivo. Si es un directorio, lo crea directamente ahí.
-        val directorioDestino = if (archivoDestino.isDirectory) archivoDestino else archivoDestino.parentFile
-
+        val destinyDirectory = if (archivoDestino.isDirectory) archivoDestino else archivoDestino.parentFile
         // --- EVENTOS DEL MENÚ PRINCIPAL ---
-
         // 1. Desplegar el submenú "Nuevo"
-        vistaMenu.findViewById<View>(R.id.itemMenuNuevo).setOnClickListener { viewNuevo ->
-            mostrarSubMenuNuevo(viewNuevo, directorioDestino)
+        menuView.findViewById<View>(R.id.itemMenuNuevo).setOnClickListener { viewNuevo ->
+            showNewSubMenu(viewNuevo, destinyDirectory)
         }
-
         // 2. Acciones estándar
-        vistaMenu.findViewById<View>(R.id.itemMenuCortar).setOnClickListener {
-            popupPrincipal?.dismiss()
-            ejecutarAccionArchivo("cortar", archivoDestino)
+        menuView.findViewById<View>(R.id.itemMenuCortar).setOnClickListener {
+            mainPopup?.dismiss()
+            runFileAction("cut", archivoDestino)
         }
-        vistaMenu.findViewById<View>(R.id.itemMenuCopiar).setOnClickListener {
-            popupPrincipal?.dismiss()
-            ejecutarAccionArchivo("copiar", archivoDestino)
+        menuView.findViewById<View>(R.id.itemMenuCopiar).setOnClickListener {
+            mainPopup?.dismiss()
+            runFileAction("copy", archivoDestino)
         }
-        vistaMenu.findViewById<View>(R.id.itemMenuPegar).setOnClickListener {
-            popupPrincipal?.dismiss()
-            ejecutarAccionArchivo("pegar", archivoDestino)
+        menuView.findViewById<View>(R.id.itemMenuPegar).setOnClickListener {
+            mainPopup?.dismiss()
+            runFileAction("paste", archivoDestino)
         }
-        vistaMenu.findViewById<View>(R.id.itemMenuRenombrar).setOnClickListener {
-            popupPrincipal?.dismiss()
-            mostrarDialogoRenombrar(archivoDestino) // Usa tu función existente
+        menuView.findViewById<View>(R.id.itemMenuRenombrar).setOnClickListener {
+            mainPopup?.dismiss()
+            showRenameDialog(archivoDestino)
         }
-        vistaMenu.findViewById<View>(R.id.itemMenuEliminar).setOnClickListener {
-            popupPrincipal?.dismiss()
-            ejecutarAccionArchivo("eliminar", archivoDestino)
+        menuView.findViewById<View>(R.id.itemMenuEliminar).setOnClickListener {
+            mainPopup?.dismiss()
+            runFileAction("Delete", archivoDestino)
         }
 
         // Mostrar menú pegado al ítem del RecyclerView
-        popupPrincipal?.showAsDropDown(anchorView, 20, -anchorView.height / 2)
+        mainPopup?.showAsDropDown(anchorView, 20, -anchorView.height / 2)
     }
 
-    /**
-     * Muestra el submenú desplazado hacia la derecha para crear archivos
-     */
-    private fun mostrarSubMenuNuevo(anchorNuevo: View, directorioDestino: File) {
-        popupNuevo?.dismiss()
+    private fun showNewSubMenu(newAnchor: View, destinyDirectory: File) {
+        newPopup?.dismiss()
 
-        val vistaNuevo = layoutInflater.inflate(R.layout.layout_menu_nuevo, null)
+        val newView = layoutInflater.inflate(R.layout.layout_new_menu, null)
 
-        popupNuevo = PopupWindow(
-            vistaNuevo,
+        newPopup = PopupWindow(
+            newView,
             resources.getDimensionPixelSize(R.dimen.submenu_ancho), // ej. 220dp
             LayoutParams.WRAP_CONTENT,
             true
         )
-        popupNuevo?.elevation = 20f
+        newPopup?.elevation = 20f
 
-        popupNuevo?.setOnDismissListener { popupPrincipal?.dismiss() }
+        newPopup?.setOnDismissListener { mainPopup?.dismiss() }
 
-        // --- EVENTOS DE GENERACIÓN ---
-        vistaNuevo.findViewById<View>(R.id.itemNuevoKotlin).setOnClickListener {
-            pedirNombreYGenerar("kotlin", directorioDestino)
+        // ---GENERATION EVENTS---
+        newView.findViewById<View>(R.id.itemNuevoKotlin).setOnClickListener {
+            promptNameAndGenerate("kotlin", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoJava).setOnClickListener {
-            pedirNombreYGenerar("java", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoJava).setOnClickListener {
+            promptNameAndGenerate("java", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoLayout).setOnClickListener {
-            pedirNombreYGenerar("layout", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoLayout).setOnClickListener {
+            promptNameAndGenerate("layout", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoDirectorio).setOnClickListener {
-            pedirNombreYGenerar("dir", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoDirectorio).setOnClickListener {
+            promptNameAndGenerate("dir", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoArchivo).setOnClickListener {
-            pedirNombreYGenerar("file", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoArchivo).setOnClickListener {
+            promptNameAndGenerate("file", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoActivity).setOnClickListener {
-            pedirNombreYGenerar("activity", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoActivity).setOnClickListener {
+            promptNameAndGenerate("activity", destinyDirectory)
         }
-        vistaNuevo.findViewById<View>(R.id.itemNuevoFragment).setOnClickListener {
-            pedirNombreYGenerar("fragment", directorioDestino)
+        newView.findViewById<View>(R.id.itemNuevoFragment).setOnClickListener {
+            promptNameAndGenerate("fragment", destinyDirectory)
         }
 
-        // Mostrar a la derecha de la opción "Nuevo" del menú principal
-        popupNuevo?.showAsDropDown(anchorNuevo, anchorNuevo.width, -anchorNuevo.height)
+        // Show to the right of the 'New' option in the main menu
+        newPopup?.showAsDropDown(newAnchor, newAnchor.width, -newAnchor.height)
     }
 
-    private fun pedirNombreYGenerar(tipo: String, directorioPadre: File) {
-        popupNuevo?.dismiss()
-        popupPrincipal?.dismiss()
+    private fun promptNameAndGenerate(tipo: String, directorioPadre: File) {
+        newPopup?.dismiss()
+        mainPopup?.dismiss()
 
-        // Aquí usamos un EditText Dialog para que ingreses el nombre
+        // Using an EditText Dialog here for name input
         val input = android.widget.EditText(this)
         input.hint = "Ej: MainActivity"
 
         android.app.AlertDialog.Builder(this)
-            .setTitle(if (tipo == "dir") "Nueva Carpeta" else "Nuevo Archivo")
+            .setTitle(if (tipo == "dir") getString(R.string.Newfolder) else getString(R.string.Newfile))
             .setView(input)
-            .setPositiveButton("Crear") { _, _ ->
+            .setPositiveButton(getString(R.string.Create)) { _, _ ->
                 val nombre = input.text.toString().trim()
                 if (nombre.isNotEmpty()) {
-                    generarArchivoDesdePlantilla(tipo, directorioPadre, nombre)
+                    generateFileFromTemplate(tipo, directorioPadre, nombre)
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.Cancelop), null)
             .show()
     }
 
-    private fun generarArchivoDesdePlantilla(tipo: String, directorioPadre: File, nombre: String) {
+    private fun generateFileFromTemplate(type: String, fatherDirectory: File, nombre: String) {
         try {
-            when (tipo) {
+            when (type) {
                 "kotlin" -> {
-                    val file = File(directorioPadre, "$nombre.kt")
-                    file.writeText("package tu.paquete.aqui\n\nclass $nombre {\n    // TODO: Implementar lógica\n}")
-                    abrirArchivoEnPestana(file) // Opcional: abrirlo de inmediato
+                    val file = File(fatherDirectory, "$nombre.kt")
+                    file.writeText("package your.package.here\n\nclass $nombre {\n    // TODO: Implement logic\n}")
+                    openFileInTab(file)
                 }
                 "java" -> {
-                    val file = File(directorioPadre, "$nombre.java")
-                    file.writeText("package tu.paquete.aqui;\n\npublic class $nombre {\n    public $nombre() {\n    }\n}")
-                    abrirArchivoEnPestana(file)
+                    val file = File(fatherDirectory, "$nombre.java")
+                    file.writeText("package your.package.here;\n\npublic class $nombre {\n    public $nombre() {\n    }\n}")
+                    openFileInTab(file)
                 }
                 "layout" -> {
-                    val file = File(directorioPadre, "${nombre.lowercase()}.xml")
+                    val file = File(fatherDirectory, "${nombre.lowercase()}.xml")
                     file.writeText("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\"\n    android:orientation=\"vertical\">\n    \n</LinearLayout>")
-                    abrirArchivoEnPestana(file)
+                    openFileInTab(file)
                 }
                 "activity" -> {
-                    val file = File(directorioPadre, "${nombre}Activity.kt")
+                    val file = File(fatherDirectory, "${nombre}Activity.kt")
                     file.writeText("import android.os.Bundle\nimport androidx.appcompat.app.AppCompatActivity\n\nclass ${nombre}Activity : AppCompatActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n    }\n}")
-                    abrirArchivoEnPestana(file)
+                    openFileInTab(file)
                 }
                 "fragment" -> {
-                    val file = File(directorioPadre, "${nombre}Fragment.kt")
+                    val file = File(fatherDirectory, "${nombre}Fragment.kt")
                     file.writeText("import android.os.Bundle\nimport android.view.View\nimport androidx.fragment.app.Fragment\n\nclass ${nombre}Fragment : Fragment() {\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        super.onViewCreated(view, savedInstanceState)\n    }\n}")
-                    abrirArchivoEnPestana(file)
+                    openFileInTab(file)
                 }
                 "file" -> {
-                    val file = File(directorioPadre, nombre)
+                    val file = File(fatherDirectory, nombre)
                     file.createNewFile()
-                    abrirArchivoEnPestana(file)
+                    openFileInTab(file)
                 }
                 "dir" -> {
-                    File(directorioPadre, nombre).mkdirs()
+                    File(fatherDirectory, nombre).mkdirs()
                 }
             }
-            refrescarArbolArchivos() // Tu función para recargar el RecyclerView
+            refreshFileTree() // Tu función para recargar el RecyclerView
         } catch (e: Exception) {
-            log("Error creando: ${e.message}", true)
+            log("Error creating: ${e.message}", true)
         }
     }
     ////////////////////////////////////////
-    private fun abrirArchivoEnPestana(file: File) {
+    private fun openFileInTab(file: File) {
         if (!editorCodeArea.isEnabled) editorCodeArea.isEnabled = true
         fileCurrentlyOpen?.let { fileContentsMemory[it.absolutePath] = editorCodeArea.text.toString() }
 
@@ -912,15 +888,15 @@ class EditorActivity : AppCompatActivity() {
                     fileContentsMemory[file.absolutePath] = content
                     fileCurrentlyOpen = file
                     tabAdapter.updateData(openTabs, file)
-                    cambiarFocoAPestana(file)
+                    switchFocusToTab(file)
                 }
             }
         } else {
-            cambiarFocoAPestana(file)
+            switchFocusToTab(file)
         }
     }
 
-    private fun cerrarPestana(file: File) {
+    private fun colseTab(file: File) {
         val index = openTabs.indexOf(file)
         if (index == -1) return
 
@@ -930,7 +906,7 @@ class EditorActivity : AppCompatActivity() {
         if (fileCurrentlyOpen == file) {
             if (openTabs.isNotEmpty()) {
                 val nextIndex = if (index < openTabs.size) index else openTabs.size - 1
-                cambiarFocoAPestana(openTabs[nextIndex])
+                switchFocusToTab(openTabs[nextIndex])
             } else {
                 fileCurrentlyOpen = null
                 editorCodeArea.setText("")
@@ -965,15 +941,15 @@ class EditorActivity : AppCompatActivity() {
             onFileClick = { item ->
                 if (item is GitItemAdapter.GitItem.FileItem) {
                     val f = File(projectRoot, item.file.path)
-                    if (f.exists()) abrirArchivoEnPestana(f)
+                    if (f.exists()) openFileInTab(f)
                 }
             },
             onFileStage = { item ->
                 if (item is GitItemAdapter.GitItem.FileItem) {
                     lifecycleScope.launch {
                         val res = gitManager.stageFile(item.file.path)
-                        if (!res.success) log("[Git] Error al indexar: ${res.error}", true)
-                        refrescarEstadoGit()
+                        if (!res.success) log("[Git] Error indexing: ${res.error}", true)
+                        refreshGitStatus()
                     }
                 }
             }
@@ -982,200 +958,194 @@ class EditorActivity : AppCompatActivity() {
         recyclerGitItems.layoutManager = LinearLayoutManager(this)
         recyclerGitItems.adapter = gitItemAdapter
 
-        tabGit.addTab(tabGit.newTab().setText("Cambios"))
-        tabGit.addTab(tabGit.newTab().setText("Historial"))
+        tabGit.addTab(tabGit.newTab().setText(getString(R.string.Changes)))
+        tabGit.addTab(tabGit.newTab().setText(getString(R.string.History)))
         tabGit.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 gitCurrentTab = tab?.position ?: 0
-                refrescarListaGit()
+                refreshGitList()
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        findViewById<LinearLayout>(R.id.gitOpcions).setOnClickListener { alternarPanelGit() }
-        btnCloseGitPanel.setOnClickListener { cerrarPanelGit() }
+        findViewById<LinearLayout>(R.id.gitOpcions).setOnClickListener { toggleGitPanel() }
+        btnCloseGitPanel.setOnClickListener { closeGitPanel() }
 
-        // Conexión de botones con las funciones de ejecución
-        btnGitCommit.setOnClickListener { ejecutarCommit() }
-        btnGitPull.setOnClickListener { ejecutarPull() }
-        btnGitPush.setOnClickListener { ejecutarPush() }
-        btnGitSync.setOnClickListener { ejecutarSync() }
+        // Connecting buttons with execution functions
+        btnGitCommit.setOnClickListener { executeCommit() }
+        btnGitPull.setOnClickListener { executePull() }
+        btnGitPush.setOnClickListener { executePush() }
+        btnGitSync.setOnClickListener { executeSync() }
 
         lifecycleScope.launch { cargarInfoRepoYActualizar() }
     }
 
-    private fun alternarPanelGit() { if (gitPanel.visibility == View.VISIBLE) cerrarPanelGit() else abrirPanelGit() }
-    private fun abrirPanelGit() { gitPanel.visibility = View.VISIBLE; gitPanel.alpha = 0f; gitPanel.animate().alpha(1f).setDuration(180).start(); refrescarEstadoGit() }
-    private fun cerrarPanelGit() { gitPanel.animate().alpha(0f).setDuration(150).withEndAction { gitPanel.visibility = View.GONE }.start() }
+    private fun toggleGitPanel() { if (gitPanel.visibility == View.VISIBLE) closeGitPanel() else openGitPanel() }
+    private fun openGitPanel() { gitPanel.visibility = View.VISIBLE; gitPanel.alpha = 0f; gitPanel.animate().alpha(1f).setDuration(180).start(); refreshGitStatus() }
+    private fun closeGitPanel() { gitPanel.animate().alpha(0f).setDuration(150).withEndAction { gitPanel.visibility = View.GONE }.start() }
 
 
-    private fun refrescarEstadoGit() {
+    private fun refreshGitStatus() {
         lifecycleScope.launch {
-            val cambios = gitManager.obtenerArchivosCambiados()
+            val cambios = gitManager.getChangedFiles()
             withContext(Dispatchers.Main) {
-                tvGitChanges.text = "${cambios.size} cambios"
+                tvGitChanges.text = "${cambios.size} ${getString(R.string.Changes)}"
                 dotGitPending.visibility = if (cambios.isNotEmpty()) View.VISIBLE else View.GONE
-                refrescarListaGit()
+                refreshGitList()
             }
         }
     }
-    private fun ejecutarPull() {
+    private fun executePull() {
         val info = gitRepoInfo ?: return
 
-        // Obtenemos el token guardado en las preferencias (SharedPreferences)
+        // Retrieve the token saved in SharedPreferences
         val token = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_TOKEN", "") ?: ""
 
         if (token.isBlank()) {
-            log("[Git] Error: No hay un Token de GitHub configurado.", true)
-            mostrarDialogoToken() // Llama a tu función para pedir el token si no existe
+            log("[Git] Error: No GitHub Token configured.", true)
+            showTokenDialog()
             return
         }
 
         lifecycleScope.launch {
-            log("> [Git] Iniciando Pull desde origin/${info.branch}...")
-            runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Iniciando Pull desde origin/${info.branch}...", Toast.LENGTH_SHORT).show() }
+            log("> [Git] Starting Pull from origin/${info.branch}...")
+            runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpulltxt)} ${info.branch}...", Toast.LENGTH_SHORT).show() }
 
-            // Ejecutamos el pull usando el GitManager nativo
             val res = gitManager.pull(token, info.owner, info.repoName, info.branch)
 
             withContext(Dispatchers.Main) {
                 if (res.success) {
-                    log("> [Git] Pull completado.\n${res.output}")
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Pull completado.\n${res.output}", Toast.LENGTH_SHORT).show() }
-
-                    // Refrescamos la interfaz para mostrar los nuevos archivos o cambios
-                    refrescarArbolArchivos()
-                    refrescarEstadoGit()
+                    log("> [Git] Pull done.\n${res.output}")
+                    runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpulldone)}.\n${res.output}", Toast.LENGTH_SHORT).show() }
+                    refreshFileTree()
+                    refreshGitStatus()
                 } else {
-                    log("[Git] Error en Pull: ${res.error}\n${res.output}", true)
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "[Git] Error en Pull: ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
-                    manejarResultadoPull(res)
+                    log("[Git] Error on Pull: ${res.error}\n${res.output}", true)
+                    runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpullerror)} ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
+                    handlePullResult(res)
                 }
             }
         }
     }
 
-    private fun manejarResultadoPull(resultado: GitManager.GitResult) {
-        if (!resultado.success && resultado.error.contains("conflict", ignoreCase = true)) {
+    private fun handlePullResult(result: GitManager.GitResult) {
+        if (!result.success && result.error.contains("conflict", ignoreCase = true)) {
             lifecycleScope.launch {
-                val conflictos = gitManager.obtenerArchivosEnConflicto()
+                val conflictos = gitManager.getConflictingFiles()
                 if (conflictos.isNotEmpty()) {
-                    // Opción A: Mostrar un diálogo con la lista de archivos
-                    mostrarDialogoSeleccionConflictos(conflictos)
+                    showConflictSelectionDialog(conflictos)
                 }
             }
         }
     }
 
-    private fun mostrarDialogoSeleccionConflictos(lista: List<String>) {
+    private fun showConflictSelectionDialog(lista: List<String>) {
         AlertDialog.Builder(this)
-            .setTitle("Conflictos detectados")
+            .setTitle(getString(R.string.Conflictdetected))
             .setItems(lista.toTypedArray()) { _, which ->
-                val archivo = lista[which]
-                abrirFragmentMerge(archivo)
+                val file = lista[which]
+                openFragmentMerge(file)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.Cancelop), null)
             .show()
     }
 
-    private fun abrirFragmentMerge(path: String) {
+    private fun openFragmentMerge(path: String) {
         val frag = MergeResolverFragment().apply {
             arguments = Bundle().apply { putString("file_path", path) }
         }
-
-        // Lo cargamos sobre el editor o en un contenedor de fragments
         supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, frag) // Asegúrate de tener un FrameLayout para esto
+            .replace(R.id.fragment_container, frag)
             .addToBackStack(null)
             .commit()
     }
 
-    private fun refrescarListaGit() {
+    private fun refreshGitList() {
         lifecycleScope.launch {
             val token = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_TOKEN", "") ?: ""
 
             if (gitCurrentTab == 0) {
-                // Pestaña "Cambios"
-                val archivos = gitManager.obtenerArchivosCambiados()
+                // Tab "Changes"
+                val files = gitManager.getChangedFiles()
                 withContext(Dispatchers.Main) {
-                    gitItemAdapter.mostrarArchivos(archivos)
+                    gitItemAdapter.showFiles(files)
                 }
             } else {
-                // Pestaña "Historial"
+                // Tab "History"
                 val commits = if (gitRepoInfo != null && gitRepoInfo!!.isGitRepo && token.isNotBlank()) {
-                    gitManager.obtenerCommitsGitHub(gitRepoInfo!!.owner, gitRepoInfo!!.repoName, token, gitRepoInfo!!.branch)
+                    gitManager.getGitHubCommits(gitRepoInfo!!.owner, gitRepoInfo!!.repoName, token, gitRepoInfo!!.branch)
                 } else {
-                    gitManager.obtenerCommitsLocales()
+                    gitManager.getLocaleCommits()
                 }
                 withContext(Dispatchers.Main) {
-                    gitItemAdapter.mostrarCommits(commits)
+                    gitItemAdapter.showCommits(commits)
                 }
             }
         }
     }
 
-    private fun ejecutarCommit() {
+    private fun executeCommit() {
         val msg = etCommitMessage.text.toString().trim()
         if (msg.isEmpty()) return
-        guardarArchivoActual()
+        saveActualFile()
 
         lifecycleScope.launch {
-            log("> [Git] Ejecutando Commit...")
-            runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Ejecutando Commit...", Toast.LENGTH_SHORT).show() }
+            log("> [Git] Executing Commit...")
+            runOnUiThread { Toast.makeText(this@EditorActivity, getString(R.string.Commitexecute), Toast.LENGTH_SHORT).show() }
             val res = gitManager.commit(msg)
             withContext(Dispatchers.Main) {
                 if (res.success) {
-                    log("> [Git] Commit exitoso.")
+                    log("> [Git] Commit Done")
                     etCommitMessage.setText("")
-                    refrescarEstadoGit()
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Commit exitoso.", Toast.LENGTH_SHORT).show() }
+                    refreshGitStatus()
+                    runOnUiThread { Toast.makeText(this@EditorActivity, getString(R.string.Commitdone), Toast.LENGTH_SHORT).show() }
                 } else {
-                    log("[Git] Error en Commit: ${res.error}\n${res.output}", true)
-                    runOnUiThread { Toast.makeText(this@EditorActivity,"[Git] Error en Commit: ${res.error}\n${res.output}", Toast.LENGTH_SHORT).show() }
+                    log("[Git] Commit Error: ${res.error}\n${res.output}", true)
+                    runOnUiThread { Toast.makeText(this@EditorActivity,"${getString(R.string.Commiterror)} ${res.error}\n${res.output}", Toast.LENGTH_SHORT).show() }
                 }
             }
         }
     }
 
-    private fun ejecutarPush() {
+    private fun executePush() {
         val info = gitRepoInfo ?: return
         val token = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_TOKEN", "") ?: ""
 
         lifecycleScope.launch {
-            log("> [Git] Iniciando Push hacia origin/${info.branch}...")
+            log("[Git] Starting Push from origin/${info.branch}...")
             val res = gitManager.push(token, info.owner, info.repoName, info.branch)
-            runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Iniciando Push hacia origin/${info.branch}...", Toast.LENGTH_SHORT).show() }
+            runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpushtxt)}${info.branch}...", Toast.LENGTH_SHORT).show() }
             withContext(Dispatchers.Main) {
                 if (res.success) {
-                    log("> [Git] Push completado.\n${res.output}")
-                    refrescarEstadoGit()
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Push completado.\n${res.output}", Toast.LENGTH_SHORT).show() }
+                    log("> [Git] Push done\n${res.output}")
+                    refreshGitStatus()
+                    runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpushdone)}\n${res.output}", Toast.LENGTH_SHORT).show() }
                 } else {
-                    log("[Git] Error en Push: ${res.error}\n${res.output}", true)
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "[Git] Error en Push: ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
+                    log("[Git] Push Error: ${res.error}\n${res.output}", true)
+                    runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpusherror)} ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
                 }
             }
         }
     }
 
-    private fun ejecutarSync() {
+    private fun executeSync() {
         val info = gitRepoInfo ?: return
         val token = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_TOKEN", "") ?: ""
 
         lifecycleScope.launch {
-            log("> [Git] Iniciando Sincronización (Pull + Push)...")
-            runOnUiThread { Toast.makeText(this@EditorActivity,"> [Git] Iniciando Sincronización (Pull + Push)...", Toast.LENGTH_SHORT).show() }
+            log("> [Git] Starting Synchronization (Pull + Push)...")
+            runOnUiThread { Toast.makeText(this@EditorActivity,getString(R.string.Gitpushpull), Toast.LENGTH_SHORT).show() }
             val res = gitManager.sync(token, info.owner, info.repoName, info.branch)
             withContext(Dispatchers.Main) {
                 if (res.success) {
-                    log("> [Git] Sincronización completa.")
-                    refrescarArbolArchivos()
-                    refrescarEstadoGit()
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "> [Git] Sincronización completa.", Toast.LENGTH_SHORT).show() }
+                    log("> [Git] Synchronization done")
+                    refreshFileTree()
+                    refreshGitStatus()
+                    runOnUiThread { Toast.makeText(this@EditorActivity,getString(R.string.Gitpushpulldone), Toast.LENGTH_SHORT).show() }
                 } else {
-                    log("[Git] Error en Sync: ${res.error}\n${res.output}", true)
-                    runOnUiThread { Toast.makeText(this@EditorActivity, "[Git] Error en Sync: ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
+                    log("[Git] Synchronization Error: ${res.error}\n${res.output}", true)
+                    runOnUiThread { Toast.makeText(this@EditorActivity, "${getString(R.string.Gitpushpullerror)} ${res.error}\n${res.output}", Toast.LENGTH_LONG).show() }
                 }
             }
         }
@@ -1186,7 +1156,7 @@ class EditorActivity : AppCompatActivity() {
         withContext(Dispatchers.Main) {
             val info = gitRepoInfo ?: return@withContext
             if (!info.isGitRepo) {
-                tvToolbarBranch.text = "sin-git"
+                tvToolbarBranch.text = "no-git"
                 return@withContext
             }
             tvToolbarBranch.text = info.branch
@@ -1197,54 +1167,52 @@ class EditorActivity : AppCompatActivity() {
             val token = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_TOKEN", "") ?: ""
 
             if (token.isNotBlank()) {
-                // 1. Obtenemos el usuario de GitHub
+                // 1. Retrieve the GitHub user
                 val user = gitManager.obtenerUsuarioGitHub(token)
 
                 if (user.isNotEmpty()) {
                     tvGitPanelStatus.text = "✓ @$user"
 
-                    // 2. Opcional: Obtener el correo primario de la API
-                    // Si la API no te da el correo (porque es privado), puedes usar uno por defecto
+                    // 2. Optional: Retrieve the primary email from the API
+                    // If the API doesn't provide the email (e.g., if it's private), we use a default one
                     val correoAsociado = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_EMAIL", "$user@users.noreply.github.com")
-
-                    // 3. ¡Aplicamos la identidad al repositorio!
-                    // Usamos lifecycleScope porque no podemos bloquear el hilo Main con operaciones IO
+                    // 3. Applying the identity to the repository!
                     lifecycleScope.launch {
                         val configRes = gitManager.configurarIdentidad(user, correoAsociado!!)
                         if (!configRes.success) {
-                            log("Advertencia: No se pudo configurar la firma de commits.", true)
+                            log("Warning: Could not configure commit signing.", true)
                         }
                     }
                 } else {
-                    tvGitPanelStatus.text = "⚠️ Token inválido"
+                    tvGitPanelStatus.text = "⚠️ ${getString(R.string.Tokeninvalid)}"
                 }
             } else {
-                mostrarDialogoToken()
+                showTokenDialog()
             }
         }
-        refrescarEstadoGit()
+        refreshGitStatus()
     }
 
-    private fun mostrarDialogoToken() {
+    private fun showTokenDialog() {
         val input = EditText(this).apply { hint = "ghp_xxxxxxxxxxxx" }
         android.app.AlertDialog.Builder(this).setTitle("Token GitHub").setView(input).setPositiveButton("OK") { _, _ ->
             val t = input.text.toString(); if (t.isNotBlank()) { getSharedPreferences("AppPrefs", MODE_PRIVATE).edit().putString("GITHUB_TOKEN", t).apply(); lifecycleScope.launch { cargarInfoRepoYActualizar() } }
         }.show()
     }
 
-    private fun configurarConsola() {
+    private fun configureConsole() {
         tvConsole = TextView(this).apply {
             layoutParams = LinearLayout.LayoutParams(-1, dpToPx(150f))
             setBackgroundColor(Color.parseColor("#0C0C0C"))
             setTextColor(Color.parseColor("#00FF00"))
             textSize = 10f; setPadding(16, 16, 16, 16)
-            text = "> Jarvis Engine: Listo.\n"; visibility = View.GONE
+            text = "> Engine: Done.\n"; visibility = View.GONE
         }
         val mainContainer = codeScrollContainer.parent as ViewGroup
         mainContainer.addView(tvConsole, mainContainer.indexOfChild(codeScrollContainer) + 1)
     }
 
-    private fun configurarBarraDeSimbolos() {
+    private fun configureSymbolBar() {
         listOf("{", "}", "<", ">", "/", "=", "\"", "(", ")", ";").forEach { s ->
             val b = TextView(this).apply { text = s; textSize = 18f; setPadding(30, 10, 30, 10); setTextColor(Color.WHITE); setOnClickListener { editorCodeArea.text?.insert(editorCodeArea.selectionStart, s) } }
             quickSymbolBar.addView(b)
@@ -1252,17 +1220,17 @@ class EditorActivity : AppCompatActivity() {
     }
 
 
-    private suspend fun prepararCompilador() {
+    private suspend fun setupCompiler() {
         aapt2File = File(applicationInfo.nativeLibraryDir, "libaapt2.so")
         androidJarFile = File(filesDir, "android_framework_api33.jar")
         materialLibFile = File(filesDir, "m3_shared_library.apk")
         try {
             if (!androidJarFile.exists()) assets.open("android_framework_api33.jar").use { it.copyTo(FileOutputStream(androidJarFile)) }
             if (!materialLibFile.exists()) assets.open("m3_shared_library.apk").use { it.copyTo(FileOutputStream(materialLibFile)) }
-        } catch (e: Exception) { log("> [ERROR] Entorno: ${e.message}", true) }
+        } catch (e: Exception) { log("> [ERROR] Environment: ${e.message}", true) }
     }
 
-    private fun ejecutarShell(comando: String): ShellResult {
+    private fun runShell(comando: String): ShellResult {
         return try {
             val p = Runtime.getRuntime().exec(arrayOf("sh", "-c", comando), arrayOf("LD_LIBRARY_PATH=${filesDir.absolutePath}:${applicationInfo.nativeLibraryDir}"))
             ShellResult(p.waitFor() == 0, p.inputStream.bufferedReader().readText(), p.errorStream.bufferedReader().readText())
@@ -1277,13 +1245,13 @@ class EditorActivity : AppCompatActivity() {
     data class ShellResult(val success: Boolean, val output: String, val error: String)
 }
 
-// Adaptador de Archivos
+// File Adapter
 class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: (View, File) -> Unit) : RecyclerView.Adapter<FileAdapter.ViewHolder>() {
 
     private var files = listOf<Pair<File, Int>>()
     private var expandedFolders = setOf<String>()
 
-    fun actualizarArchivos(newFiles: List<Pair<File, Int>>, expandedFolders: Set<String>) {
+    fun updateFiles(newFiles: List<Pair<File, Int>>, expandedFolders: Set<String>) {
         this.files = newFiles
         this.expandedFolders = expandedFolders
         notifyDataSetChanged()
@@ -1337,8 +1305,8 @@ class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: 
     override fun getItemCount() = files.size
 
     class ViewHolder(view: View, val arrowIcon: ImageView, val mainIcon: ImageView, val textView: TextView) : RecyclerView.ViewHolder(view)
-}// --- CLASE ADAPTER COMPLETA ---
-// --- CLASE ADAPTER DEFINITIVA ---
+}
+// --- CLASE ADAPTER COMPLETE ---
 class TabAdapter(private val onTabClick: (File) -> Unit, private val onTabClose: (File) -> Unit) : RecyclerView.Adapter<TabAdapter.TabViewHolder>() { // <--- Esta línea es la clave
 
     var openTabs = mutableListOf<File>()
@@ -1358,8 +1326,6 @@ class TabAdapter(private val onTabClick: (File) -> Unit, private val onTabClose:
     override fun onBindViewHolder(holder: TabAdapter.TabViewHolder, position: Int) {
         val file = openTabs[position]
         holder.tvName.text = file.name
-
-        // Resaltado visual usando tu ID 'alltab'
         val isSelected = file.absolutePath == activeFile?.absolutePath
 
         holder.layoutRoot.backgroundTintList = android.content.res.ColorStateList.valueOf(
@@ -1378,7 +1344,6 @@ class TabAdapter(private val onTabClick: (File) -> Unit, private val onTabClose:
         notifyItemMoved(from, to)
     }
 
-    // El ViewHolder DEBE estar dentro de la clase para evitar errores de tipo
     class TabViewHolder(v: View) : RecyclerView.ViewHolder(v) {
         val layoutRoot: View = v.findViewById(R.id.alltab)
         val tvName: TextView = v.findViewById(R.id.namefile)

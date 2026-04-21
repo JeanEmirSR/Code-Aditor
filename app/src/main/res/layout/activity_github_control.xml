@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#24292E"
-        app:title="Mis Repositorios"
+        app:title="@string/Myrepositorys"
         app:titleTextColor="@android:color/white"
         app:navigationIcon="@android:drawable/ic_menu_revert" />
 

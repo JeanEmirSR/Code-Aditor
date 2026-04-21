@@ -1,4 +1,4 @@
-package com.jeansr.androideditor // <-- Asegúrate de que coincida con tu paquete
+package com.jeansr.androideditor
 
 import android.content.Context
 import android.os.Bundle
@@ -19,14 +19,12 @@ import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.json.JSONArray
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-// Modelo de datos
+// Model data class for GitHub repository
 data class GithubRepo(val name: String, val description: String, val cloneUrl: String)
 
 class GithubControlActivity : AppCompatActivity() {
@@ -50,14 +48,14 @@ class GithubControlActivity : AppCompatActivity() {
         githubToken = sharedPref.getString("GITHUB_TOKEN", "") ?: ""
 
         if (githubToken.isEmpty()) {
-            Toast.makeText(this, "Error: No hay Token", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error: Token didn't exist", Toast.LENGTH_SHORT).show()
             finish()
         } else {
-            cargarRepositorios()
+            setupRepository()
         }
     }
 
-    private fun cargarRepositorios() {
+    private fun setupRepository() {
         progressBar.visibility = ProgressBar.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -84,40 +82,40 @@ class GithubControlActivity : AppCompatActivity() {
                     }
 
                     withContext(Dispatchers.Main) {
-                        // AQUÍ CONECTAMOS LOS NUEVOS CLICS
+
                         recyclerRepos.adapter = RepoAdapter(
                             repos,
-                            onCloneClick = { repo -> clonarRepositorio(repo) },
-                            onItemClick = { repo -> mostrarDetalles(repo) }
+                            onCloneClick = { repo -> cloneRepository(repo) },
+                            onItemClick = { repo -> showRepoDetails(repo) }
                         )
                         progressBar.visibility = ProgressBar.GONE
                     }
                 } else {
-                    mostrarError("Error API: ${connection.responseCode}")
+                    showError("Error API: ${connection.responseCode}")
                 }
             } catch (e: Exception) {
-                mostrarError(e.message ?: "Error de red")
+                showError(e.message ?: "Error network")
             }
         }
     }
 
-    // NUEVO: Cuadro de diálogo para ver los detalles completos
-    private fun mostrarDetalles(repo: GithubRepo) {
+
+    private fun showRepoDetails(repo: GithubRepo) {
         AlertDialog.Builder(this)
             .setTitle(repo.name)
-            .setMessage("Descripción:\n${repo.description}\n\nURL de clonación:\n${repo.cloneUrl}")
-            .setPositiveButton("Cerrar", null)
-            .setNeutralButton("Clonar a local") { _, _ ->
-                clonarRepositorio(repo)
+            .setMessage("${getString(R.string.Description)}\n${repo.description}\n\n${getString(R.string.Cloneurl)}\n${repo.cloneUrl}")
+            .setPositiveButton(getString(R.string.Close), null)
+            .setNeutralButton(getString(R.string.Clonelocal)) { _, _ ->
+                cloneRepository(repo)
             }
             .show()
     }
 
-    private fun clonarRepositorio(repo: GithubRepo) {
+    private fun cloneRepository(repo: GithubRepo) {
         val destinationDir = File(getExternalFilesDir("Projects"), repo.name)
 
         if (destinationDir.exists()) {
-            Toast.makeText(this, "El proyecto ya existe localmente", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.Projectalreadyexist), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -131,46 +129,40 @@ class GithubControlActivity : AppCompatActivity() {
         val owner = parts.getOrElse(0) { "" }
         val repoName = parts.getOrElse(1) { repo.name }
 
-        // 1. Mostrar progreso mientras leemos las ramas
         progressBar.visibility = ProgressBar.VISIBLE
-        Toast.makeText(this, "Buscando ramas...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.Searchbranch), Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            // Pedimos la lista de ramas a GitHub
-            val ramas = gitManager.obtenerRamasRemotas(githubToken, owner, repoName)
+
+            val branches = gitManager.getRemoteBranches(githubToken, owner, repoName)
 
             withContext(Dispatchers.Main) {
                 progressBar.visibility = ProgressBar.GONE
-
-                if (ramas.isEmpty()) {
-                    Toast.makeText(this@GithubControlActivity, "No se encontraron ramas o hubo un error de red.", Toast.LENGTH_SHORT).show()
+                if (branches.isEmpty()) {
+                    Toast.makeText(this@GithubControlActivity, getString(R.string.Nobranches), Toast.LENGTH_SHORT).show()
                     return@withContext
                 }
-
-                // 2. Lógica de decisión
-                if (ramas.size == 1) {
-                    // Si solo hay una (ej. main), la clonamos directamente sin molestar al usuario
-                    ejecutarClonadoReal(gitManager, owner, repoName, destinationDir, ramas.first())
+                if (branches.size == 1) {
+                    runRealClone(gitManager, owner, repoName, destinationDir, branches.first())
                 } else {
-                    // Si hay varias, mostramos un diálogo nativo
-                    val opciones = ramas.toTypedArray()
+                    val options = branches.toTypedArray()
                     android.app.AlertDialog.Builder(this@GithubControlActivity)
-                        .setTitle("Selecciona la rama a clonar")
-                        .setItems(opciones) { _, which ->
-                            val ramaSeleccionada = opciones[which]
-                            ejecutarClonadoReal(gitManager, owner, repoName, destinationDir, ramaSeleccionada)
+                        .setTitle(getString(R.string.Selectclonebranch))
+                        .setItems(options) { _, which ->
+                            val ramaSeleccionada = options[which]
+                            runRealClone(gitManager, owner, repoName, destinationDir, ramaSeleccionada)
                         }
-                        .setNegativeButton("Cancelar", null)
+                        .setNegativeButton(getString(R.string.Cancelop), null)
                         .show()
                 }
             }
         }
     }
 
-    // Función auxiliar para hacer el trabajo pesado
-    private fun ejecutarClonadoReal(gitManager: GitManager, owner: String, repoName: String, destinationDir: File, rama: String) {
+    // Helper function to handle the heavy lifting
+    private fun runRealClone(gitManager: GitManager, owner: String, repoName: String, destinationDir: File, rama: String) {
         progressBar.visibility = ProgressBar.VISIBLE
-        Toast.makeText(this, "Clonando rama '$rama'... esto puede tardar", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "${getString(R.string.Cloningbranch)} '$rama'${getString(R.string.Thiscantakeawhile)}", Toast.LENGTH_LONG).show()
 
         lifecycleScope.launch(Dispatchers.IO) {
             val res = gitManager.clonarRepo(githubToken, owner, repoName, destinationDir, rama)
@@ -178,24 +170,24 @@ class GithubControlActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 progressBar.visibility = ProgressBar.GONE
                 if (res.success) {
-                    Toast.makeText(this@GithubControlActivity, "¡Clonado con éxito!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@GithubControlActivity, getString(R.string.Clonedone), Toast.LENGTH_SHORT).show()
                     finish()
                 } else {
                     destinationDir.deleteRecursively()
-                    Toast.makeText(this@GithubControlActivity, "Error: ${res.error.take(120)}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@GithubControlActivity, "${getString(R.string.Error)} ${res.error.take(120)}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    private suspend fun mostrarError(mensaje: String) {
+    private suspend fun showError(message: String) {
         withContext(Dispatchers.Main) {
             progressBar.visibility = ProgressBar.GONE
-            Toast.makeText(this@GithubControlActivity, mensaje, Toast.LENGTH_LONG).show()
+            Toast.makeText(this@GithubControlActivity, message, Toast.LENGTH_LONG).show()
         }
     }
 
-    // --- EL ADAPTADOR ACTUALIZADO PARA USAR EL XML ---
+    // --- ADAPTER UPDATE TO USE ON XML ---
     class RepoAdapter(
         private val repos: List<GithubRepo>,
         private val onCloneClick: (GithubRepo) -> Unit,
@@ -203,7 +195,6 @@ class GithubControlActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<RepoAdapter.ViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            // Inflamos el archivo XML que acabas de crear
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_github_repo, parent, false)
             return ViewHolder(view)
         }
@@ -215,15 +206,14 @@ class GithubControlActivity : AppCompatActivity() {
             holder.txtDesc.text = repo.description
             holder.itemView.setBackgroundColor(holder.itemView.context.getColor(R.color.gray_ob))
 
-            // 1. Clic en toda la tarjeta (Abre detalles)
             holder.itemView.setOnClickListener { onItemClick(repo) }
 
-            // 2. Clic en los 3 puntitos (Abre menú Popup)
             holder.btnMenu.setOnClickListener { view ->
                 val popup = PopupMenu(view.context, view)
-                popup.menu.add("Clonar a Local")
+
+                popup.menu.add(R.string.Clonelocal.toString())
                 popup.setOnMenuItemClickListener { item ->
-                    if (item.title == "Clonar a Local") {
+                    if (item.title == R.string.Clonelocal.toString()) {
                         onCloneClick(repo)
                     }
                     true
