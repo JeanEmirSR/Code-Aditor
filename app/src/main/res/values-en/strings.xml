@@ -18,5 +18,53 @@
     <string name="InvalidToken">Invalid GitHub token</string>
     <string name="Githubconection">GitHub Connection</string>
 
+    <!--Editor Activity -->
+    <string name="Copied">Copied</string>
+    <string name="Cut">Cut</string>
+    <string name="Paste">Paste&#8230;</string>
+    <string name="Delete">Delete</string>
+    <string name="Rename">Rename</string>
+    <string name="Deletesureelement">Are you sure you want to delete this element permanently </string>
+    <string name="Actionundo">This action cannot be undone</string>
+    <string name="Deleting">Deleting&#8230;</string>
+    <string name="Newfolder">New Folder</string>
+    <string name="Newfile">New File</string>
+    <string name="Newproject">New Project</string>
+    <string name="Create">Create</string>
+    <string name="Changes">Changes</string>
+    <string name="History">History</string>
+    <string name="Gitpulltxt">> [Git] Starting Pull from origin/</string>
+    <string name="Gitpulldone">> [Git] Pull done</string>
+    <string name="Gitpullerror">[Git] Pull Error:</string>
+    <string name="Conflictdetected">Conflicts detected</string>
+    <string name="Commitexecute">> [Git] Executing Commit...</string>
+    <string name="Commitdone">> [Git] Commit done</string>
+    <string name="Commiterror">[Git] Commit Error:</string>
+    <string name="Gitpushtxt">> [Git] Starting Push from origin/</string>
+    <string name="Gitpushdone">> [Git] Push done</string>
+    <string name="Gitpusherror">[Git] Push Error:</string>
+    <string name="Gitpushpull">> [Git] Starting Synchronization (Pull + Push)&#8230;</string>
+    <string name="Gitpushpulldone">> [Git] Synchronization done</string>
+    <string name="Gitpushpullerror">[Git] Synchronization Error:</string>
+    <string name="Tokeninvalid">The token is invalid</string>
+
+    <!--Github Control Activity -->
+    <string name="Description">Description:</string>
+    <string name="Cloneurl">Cloning URL:</string>
+    <string name="Close">Close</string>
+    <string name="Clonelocal">Clone to local</string>
+    <string name="Searchbranch">Searching branches&#8230;</string>
+    <string name="Nobranches">No branches found or a network error occurred.</string>
+    <string name="Selectclonebranch">Select the branch to clone</string>
+    <string name="Cloningbranch">Cloning branch</string>
+    <string name="Thiscantakeawhile">&#8230; this may take a while</string>
+    <string name="Clonedone">Cloning successful!</string>
+    <string name="Error">Error:</string>
+    <string name="Myrepositorys">My Repositories</string>
+
+
+
+
+
 
 </resources>

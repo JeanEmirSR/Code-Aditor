@@ -1,15 +1,14 @@
 <resources>
-
-    <!--Activity main-->
-    <string name="My_projects">Mis Proyectos</string>
-    <string name="New_project">Nuevo Proyecto</string>
+    <string name="app_name" translatable="false">Code Aditor</string>
+    <string name="My_projects">Mis proyectos</string>
+    <string name="New_project">Nuevo proyecto</string>
     <string name="Connect_github">Conectar con GitHub</string>
     <string name="Renameop">Renombrar</string>
-    <string name="Deleteop">Eliminar Proyecto</string>
+    <string name="Deleteop">Eliminar proyecto</string>
     <string name="Cancelop">Cancelar</string>
     <string name="Confirmop">Confirmar</string>
     <string name="Saveop">Guardar</string>
-    <string name="Deletesure">¿Estás seguro de que deseas eliminar este proyecto permanentemente?</string>
+    <string name="Deletesure">¿Estás seguro de que quieres eliminar este proyecto permanentemente?</string>
     <string name="ConfirmDeleteop">Sí, eliminar</string>
     <string name="No">No</string>
     <string name="Projectalreadyexist">El proyecto ya existe</string>
@@ -17,4 +16,46 @@
     <string name="Pastetoken">Pega tu token de GitHub aquí</string>
     <string name="InvalidToken">Token de GitHub inválido</string>
     <string name="Githubconection">Conexión con GitHub</string>
+
+    <string name="Copied">Copiado</string>
+    <string name="Cut">Cortar</string>
+    <string name="Paste">Pegar&#8230;</string>
+    <string name="Delete">Eliminar</string>
+    <string name="Rename">Renombrar</string>
+    <string name="Deletesureelement">¿Estás seguro de que quieres eliminar este elemento permanentemente?</string>
+    <string name="Actionundo">Esta acción no se puede deshacer</string>
+    <string name="Deleting">Eliminando&#8230;</string>
+    <string name="Newfolder">Nueva carpeta</string>
+    <string name="Newfile">Nuevo archivo</string>
+    <string name="Newproject">Nuevo proyecto</string>
+    <string name="Create">Crear</string>
+    <string name="Changes">Cambios</string>
+    <string name="History">Historial</string>
+    <string name="Gitpulltxt">> [Git] Iniciando Pull desde origin/</string>
+    <string name="Gitpulldone">> [Git] Pull finalizado</string>
+    <string name="Gitpullerror">[Git] Error en Pull:</string>
+    <string name="Conflictdetected">Conflictos detectados</string>
+    <string name="Commitexecute">> [Git] Ejecutando Commit...</string>
+    <string name="Commitdone">> [Git] Commit finalizado</string>
+    <string name="Commiterror">[Git] Error en Commit:</string>
+    <string name="Gitpushtxt">> [Git] Iniciando Push hacia origin/</string>
+    <string name="Gitpushdone">> [Git] Push finalizado</string>
+    <string name="Gitpusherror">[Git] Error en Push:</string>
+    <string name="Gitpushpull">> [Git] Iniciando Sincronización (Pull + Push)&#8230;</string>
+    <string name="Gitpushpulldone">> [Git] Sincronización finalizada</string>
+    <string name="Gitpushpullerror">[Git] Error en Sincronización:</string>
+    <string name="Tokeninvalid">El token no es válido</string>
+
+    <string name="Description">Descripción:</string>
+    <string name="Cloneurl">URL de clonación:</string>
+    <string name="Close">Cerrar</string>
+    <string name="Clonelocal">Clonar a local</string>
+    <string name="Searchbranch">Buscando ramas&#8230;</string>
+    <string name="Nobranches">No se encontraron ramas o hubo un error de red.</string>
+    <string name="Selectclonebranch">Selecciona la rama a clonar</string>
+    <string name="Cloningbranch">Clonando rama</string>
+    <string name="Thiscantakeawhile">&#8230; esto puede tardar</string>
+    <string name="Clonedone">¡Clonación exitosa!</string>
+    <string name="Error">Error:</string>
+    <string name="Myrepositorys">Mis repositorios</string>
 </resources>

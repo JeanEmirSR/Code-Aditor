@@ -53,7 +53,6 @@
     <string name="Cloneurl">Cloning URL:</string>
     <string name="Close">Close</string>
     <string name="Clonelocal">Clone to local</string>
-    <string name="Projectalreadyexist">The project already exists locally</string>
     <string name="Searchbranch">Searching branches&#8230;</string>
     <string name="Nobranches">No branches found or a network error occurred.</string>
     <string name="Selectclonebranch">Select the branch to clone</string>
