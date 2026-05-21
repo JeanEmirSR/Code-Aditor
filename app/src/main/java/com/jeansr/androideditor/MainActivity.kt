@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerProjects: RecyclerView
     private lateinit var projectAdapter: SimpleProjectAdapter
+    private lateinit var Menubutton: ImageButtonWithTxt
 
     // Launcher to import directories
     private val importProjectLauncher = registerForActivityResult(
@@ -45,7 +46,7 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize file engine in the background
         Thread { CompilerSetup.initEngineFiles(this) }.start()
-
+        Menubutton = findViewById(R.id.menubutton)
         recyclerProjects = findViewById(R.id.recyclerProjects)
 
         // ADAPTER CONFIGURATION (Pass the view for the Popup)
