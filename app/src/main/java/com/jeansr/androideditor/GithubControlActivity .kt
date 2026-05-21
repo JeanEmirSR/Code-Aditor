@@ -44,7 +44,7 @@ class GithubControlActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
         recyclerRepos.layoutManager = LinearLayoutManager(this)
 
-        val sharedPref = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("CodeAssistPrefs", MODE_PRIVATE)
         githubToken = sharedPref.getString("GITHUB_TOKEN", "") ?: ""
 
         if (githubToken.isEmpty()) {
@@ -165,7 +165,7 @@ class GithubControlActivity : AppCompatActivity() {
         Toast.makeText(this, "${getString(R.string.Cloningbranch)} '$rama'${getString(R.string.Thiscantakeawhile)}", Toast.LENGTH_LONG).show()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val res = gitManager.clonarRepo(githubToken, owner, repoName, destinationDir, rama)
+            val res = gitManager.cloneRepo(githubToken, owner, repoName, destinationDir, rama)
 
             withContext(Dispatchers.Main) {
                 progressBar.visibility = ProgressBar.GONE

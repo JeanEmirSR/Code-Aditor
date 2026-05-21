@@ -2,37 +2,35 @@ package com.jeansr.androideditor
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.core.graphics.toColorInt
 
 class LineNumberEditText @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null
+    context: Context, attrs: AttributeSet? = null,
 ) : AppCompatEditText(context, attrs) {
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#606060") // Gris para los números
-        textSize = 15f // Ajusta según tu editor
+        color = "#606060".toColorInt() // Gray numbers
+        textSize = 15f
         textAlign = Paint.Align.RIGHT
     }
 
     private val backgroundPaint = Paint().apply {
-        color = Color.parseColor("#1E1E1E") // Fondo del margen
+        color = "#1E1E1E".toColorInt() // Margins background
     }
 
-    private val paddingLeftCustom = 100 // Espacio para los números
+    private val paddingLeftCustom = 100 // Numbers padding left
 
     init {
-        // Reservamos el espacio a la izquierda
+
         setPadding(paddingLeftCustom, paddingTop, paddingRight, paddingBottom)
     }
 
     override fun onDraw(canvas: Canvas) {
-        // 1. Dibujar el fondo del margen de números
         canvas.drawRect(0f, 0f, paddingLeftCustom.toFloat() - 10f, height.toFloat(), backgroundPaint)
 
-        // 2. Dibujar los números de línea
         var baseline = baseline.toFloat()
         val lineCount = lineCount
         val layout = layout

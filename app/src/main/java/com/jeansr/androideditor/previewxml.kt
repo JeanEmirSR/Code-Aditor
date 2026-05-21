@@ -10,9 +10,10 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
+import androidx.core.graphics.toColorInt
 
 class PreviewXml @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val phoneCard = CardView(context)
@@ -22,10 +23,9 @@ class PreviewXml @JvmOverloads constructor(
     var onModeChanged: ((modo: String) -> Unit)? = null
 
     init {
-        // Fondo gris oscuro estilo Studio
-        setBackgroundColor(Color.parseColor("#181818"))
+        setBackgroundColor("#181818".toColorInt())
 
-        // 1. Cuerpo del Teléfono
+        // 1. Phone Body (Card)
         phoneCard.apply {
             radius = dpToPx(12f).toFloat()
             cardElevation = dpToPx(15f).toFloat()
@@ -33,13 +33,12 @@ class PreviewXml @JvmOverloads constructor(
             preventCornerOverlap = true
             layoutParams = LayoutParams(0, 0).apply {
                 gravity = Gravity.CENTER
-                marginEnd = dpToPx(40f) // Espacio para la barra lateral
+                marginEnd = dpToPx(40f)
             }
         }
 
-        // 2. Barra Lateral (Side Palette)
+        // 2. Side Palette
         setupSideBar()
-
         phoneCard.addView(contentArea)
         addView(phoneCard)
         addView(sideBar)
@@ -49,42 +48,42 @@ class PreviewXml @JvmOverloads constructor(
         sideBar.apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(Color.parseColor("#2D2D30"))
-            elevation = dpToPx(20f).toFloat() // Siempre encima de todo
+            setBackgroundColor("#2D2D30".toColorInt())
+            elevation = dpToPx(20f).toFloat() // Always on top
             layoutParams = LayoutParams(dpToPx(45f), LayoutParams.MATCH_PARENT).apply {
                 gravity = Gravity.END
             }
             setPadding(0, dpToPx(20f), 0, 0)
         }
 
-        sideBar.addView(crearBotonModo("ORIG", "ORIGINAL"))
-        sideBar.addView(crearBotonModo("LIN", "LINEAR"))
-        sideBar.addView(crearBotonModo("REL", "RELATIVE"))
+        sideBar.addView(createModeButton("ORIG", "ORIGINAL"))
+        sideBar.addView(createModeButton("LIN", "LINEAR"))
+        sideBar.addView(createModeButton("REL", "RELATIVE"))
     }
 
-    private fun crearBotonModo(label: String, modoReal: String) = Button(context).apply {
+    private fun createModeButton(label: String, realMode: String) = Button(context).apply {
         text = label
         textSize = 9f
         typeface = Typeface.DEFAULT_BOLD
-        setTextColor(Color.parseColor("#9E9E9E"))
+        setTextColor("#9E9E9E".toColorInt())
         setBackgroundColor(Color.TRANSPARENT)
         layoutParams = LinearLayout.LayoutParams(dpToPx(40f), dpToPx(40f)).apply {
             setMargins(0, 4, 0, 4)
         }
         setOnClickListener {
-            onModeChanged?.invoke(modoReal)
-            actualizarBotones(this)
+            onModeChanged?.invoke(realMode)
+            updateButton(this)
         }
     }
 
-    private fun actualizarBotones(activo: Button) {
+    private fun updateButton(active: Button) {
         for (i in 0 until sideBar.childCount) {
             val btn = sideBar.getChildAt(i) as? Button ?: continue
-            if (btn == activo) {
-                btn.setTextColor(Color.parseColor("#4285F4"))
-                btn.setBackgroundColor(Color.parseColor("#3A3A3B"))
+            if (btn == active) {
+                btn.setTextColor("#4285F4".toColorInt())
+                btn.setBackgroundColor("#3A3A3B".toColorInt())
             } else {
-                btn.setTextColor(Color.parseColor("#9E9E9E"))
+                btn.setTextColor("#9E9E9E".toColorInt())
                 btn.setBackgroundColor(Color.TRANSPARENT)
             }
         }
@@ -93,7 +92,7 @@ class PreviewXml @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val h = MeasureSpec.getSize(heightMeasureSpec)
 
-        // Calculamos escala 9:16 automática
+        // Automatically calculate 9:16 scale
         val targetHeight = (h * 0.85).toInt()
         val targetWidth = (targetHeight * 0.562).toInt()
 
@@ -109,7 +108,7 @@ class PreviewXml @JvmOverloads constructor(
     fun setPreviewView(view: View) {
         clear()
         contentArea.addView(view, LayoutParams(-1, -1))
-        sideBar.bringToFront() // MANTENER BOTONES SIEMPRE VISIBLES
+        sideBar.bringToFront()
     }
 
     private fun dpToPx(dp: Float): Int = (dp * context.resources.displayMetrics.density).toInt()

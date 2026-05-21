@@ -37,7 +37,7 @@
     <string name="Gitpulldone">> [Git] Pull done</string>
     <string name="Gitpullerror">[Git] Pull Error:</string>
     <string name="Conflictdetected">Conflicts detected</string>
-    <string name="Commitexecute">> [Git] Executing Commit...</string>
+    <string name="Commitexecute">> [Git] Executing Commit…</string>
     <string name="Commitdone">> [Git] Commit done</string>
     <string name="Commiterror">[Git] Commit Error:</string>
     <string name="Gitpushtxt">> [Git] Starting Push from origin/</string>
@@ -61,6 +61,9 @@
     <string name="Clonedone">Cloning successful!</string>
     <string name="Error">Error:</string>
     <string name="Myrepositorys">My Repositories</string>
+
+    <!--Git Manager Activity -->
+    <string name="emptyToken">Empty token</string>
 
 
 

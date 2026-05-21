@@ -6,21 +6,21 @@ import java.io.InputStreamReader
 object ShellExecutor {
 
     /**
-     * Ejecuta un comando en la terminal oculta de Android.
-     * Ejemplo de uso: val resultado = ShellExecutor.runCommand("ls -la")
+     * Executes a command in the hidden Android terminal.
+     * Usage example: val result = ShellExecutor.runCommand("ls -la")
      */
     fun runCommand(command: String): ShellResult {
         return try {
-            // Inicia un nuevo proceso en el sistema operativo
+            // Starts a new process in the operating system
             val process = Runtime.getRuntime().exec(command)
 
-            // Lee lo que el proceso responde (El output "bueno")
+            // Reads what the process returns (The "good" output)
             val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
 
-            // Lee si el proceso lanzó algún error
+            // Reads if the process threw any error
             val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText() }
 
-            // Espera a que termine y obtiene el código (0 significa éxito)
+            // Waits for it to finish and gets the code (0 means success)
             val exitCode = process.waitFor()
 
             ShellResult(
@@ -30,12 +30,12 @@ object ShellExecutor {
                 exitCode = exitCode
             )
         } catch (e: Exception) {
-            ShellResult(false, "", e.message ?: "Error desconocido", -1)
+            ShellResult(false, "", e.message ?: "Unknown error", -1)
         }
     }
 }
 
-// Clase para guardar los resultados del comando
+// Class to store the command results
 data class ShellResult(
     val success: Boolean,
     val output: String,

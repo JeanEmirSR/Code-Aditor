@@ -33,10 +33,10 @@ class TabAdapter(
         val file = openTabs[position]
         holder.tvName.text = file.name
 
-        // Lógica de selección: resaltar la pestaña activa
+        // Selection logic: highlight the active tab
         val isSelected = file.absolutePath == activeFile?.absolutePath
 
-        // Cambiamos el tinte del fondo (alltab) según el estado
+        // Change the background tint (alltab) based on the state
         holder.layoutRoot.backgroundTintList = ColorStateList.valueOf(
             Color.parseColor(if (isSelected) "#1E2E4A" else "#142033")
         )
@@ -48,7 +48,7 @@ class TabAdapter(
 
     override fun getItemCount() = openTabs.size
 
-    // Función necesaria para el reordenamiento físico
+    // Function required for physical reordering
     fun moveItem(from: Int, to: Int) {
         Collections.swap(openTabs, from, to)
         notifyItemMoved(from, to)

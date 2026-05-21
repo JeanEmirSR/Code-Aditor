@@ -1152,7 +1152,7 @@ class EditorActivity : AppCompatActivity() {
     }
 
     private suspend fun cargarInfoRepoYActualizar() {
-        gitRepoInfo = gitManager.obtenerInfoRepo()
+        gitRepoInfo = gitManager.getRepoInfo()
         withContext(Dispatchers.Main) {
             val info = gitRepoInfo ?: return@withContext
             if (!info.isGitRepo) {
@@ -1168,7 +1168,7 @@ class EditorActivity : AppCompatActivity() {
 
             if (token.isNotBlank()) {
                 // 1. Retrieve the GitHub user
-                val user = gitManager.obtenerUsuarioGitHub(token)
+                val user = gitManager.getGitHubUser(token)
 
                 if (user.isNotEmpty()) {
                     tvGitPanelStatus.text = "✓ @$user"
@@ -1178,7 +1178,7 @@ class EditorActivity : AppCompatActivity() {
                     val correoAsociado = getSharedPreferences("AppPrefs", MODE_PRIVATE).getString("GITHUB_EMAIL", "$user@users.noreply.github.com")
                     // 3. Applying the identity to the repository!
                     lifecycleScope.launch {
-                        val configRes = gitManager.configurarIdentidad(user, correoAsociado!!)
+                        val configRes = gitManager.setupGitIdentity(user, correoAsociado!!)
                         if (!configRes.success) {
                             log("Warning: Could not configure commit signing.", true)
                         }

@@ -23,9 +23,9 @@ class GitItemAdapter(
 
     private val items = mutableListOf<GitItem>()
 
-    fun showFiles(archivos: List<GitManager.GitChangedFile>) {
+    fun showFiles(files: List<GitManager.GitChangedFile>) {
         items.clear()
-        items.addAll(archivos.map { GitItem.FileItem(it) })
+        items.addAll(files.map { GitItem.FileItem(it) })
         notifyDataSetChanged()
     }
 
