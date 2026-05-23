@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="320dp"
+    android:background="@drawable/bg_input_dark"
+    android:backgroundTint="@color/black"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:layout_height="wrap_content">
+
+<LinearLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:layout_marginBottom="24dp">
+
+<ImageView
+    android:layout_width="32dp"
+    android:layout_height="32dp"
+    android:src="@drawable/ic_github_invertocat_white"
+    android:layout_marginEnd="10dp" />
+
+<TextView
+    android:id="@+id/txt_github_title"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="@string/Logingithub"
+    android:textSize="18sp"
+    android:textStyle="bold"
+    android:textColor="@color/white" />
+</LinearLayout>
+
+<com.jeansr.androideditor.ImageButtonWithTxt
+    android:id="@+id/btn_github_oauth"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_input_dark"
+    android:backgroundTint="#24292e"
+    android:padding="12dp"
+    app:buttonSrc="@drawable/ic_github_invertocat_white"
+    app:buttonText="@string/Connect_github"
+    app:buttonTextColor="@color/white" />
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp">
+
+<View
+    android:layout_width="0dp"
+    android:layout_height="1dp"
+    android:layout_weight="1"
+    android:background="#444444" />
+
+<TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="@string/or"
+    android:textColor="#888888"
+    android:textSize="12sp"
+    android:padding="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginStart="8dp" />
+
+<View
+    android:layout_width="0dp"
+    android:layout_height="1dp"
+    android:layout_weight="1"
+    android:background="#444444" />
+</LinearLayout>
+
+
+<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="@string/usePat"
+    android:textColor="#CCCCCC"
+    android:textSize="13sp"
+    android:textAlignment="center"
+    android:layout_marginBottom="6dp" />
+
+
+<EditText
+    android:id="@+id/edt_github_token"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:hint="ghp_xxxxxxxxxxxx"
+    android:textColorHint="#555555"
+    android:textColor="@color/white"
+    android:inputType="textPassword"
+    android:background="@drawable/bg_input_dark"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:textSize="14sp"
+    android:layout_marginBottom="12dp"/>
+
+
+<Button
+    android:id="@+id/btn_github_token_connect"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="@string/connectWithtoken"
+    android:backgroundTint="@color/white"
+    android:textColor="@color/black"
+    android:textStyle="bold" />
+
+</LinearLayout>

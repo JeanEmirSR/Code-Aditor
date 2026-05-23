@@ -4,10 +4,11 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_input_dark"
+    android:backgroundTint="#563B7A"
     android:orientation="vertical">
 
     <LinearLayout
-        android:id="@+id/Renameop"
+        android:id="@+id/Createnewproject"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -22,7 +23,7 @@
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="10dp"
             android:layout_weight="1"
-            android:text="@string/Renameproject"
+            android:text="@string/Createnewproject"
             android:textColor="@color/white"
             android:textStyle="bold" />
 
@@ -35,12 +36,12 @@
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="10dp"
             android:layout_weight="1"
-            app:srcCompat="@drawable/ic_editdocmuent" />
+            app:srcCompat="@drawable/ic_addd" />
 
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/Deleteop"
+        android:id="@+id/Importfromstorage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -57,7 +58,7 @@
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="10dp"
             android:layout_weight="1"
-            android:text="@string/Deleteproject"
+            android:text="@string/Importfromstorage"
             android:textColor="@color/white"
             android:textStyle="bold" />
 
@@ -70,7 +71,7 @@
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="10dp"
             android:layout_weight="1"
-            app:srcCompat="@drawable/ic_deleteoutline" />
+            app:srcCompat="@drawable/ic_storage" />
 
     </LinearLayout>
 

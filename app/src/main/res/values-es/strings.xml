@@ -13,9 +13,28 @@
     <string name="No">No</string>
     <string name="Projectalreadyexist">El proyecto ya existe</string>
     <string name="ImportProject">Importando proyecto&#8230;</string>
+
+
+    <string name="Settings">Ajustes</string>
+    <string name="Githubconect">Conectar"</string>
+    <string name="extensions">Extensiónes</string>
+    <string name="shortcuts">Atajos</string>
+    <string name="github_repositories">Repositorios</string>
+
+    <!--Item Project options-->
+    <string name="Renameproject">Renombrar proyecto</string>
+    <string name="Deleteproject">Eliminar proyecto</string>
+    <!--Item add options-->
+    <string name="Createnewproject">Crear nuevo proyecto</string>
+    <string name="Importfromstorage">Importar proyecto</string>
+    <!--GitHub login layout-->
     <string name="Pastetoken">Pega tu token de GitHub aquí</string>
     <string name="InvalidToken">Token de GitHub inválido</string>
     <string name="Githubconection">Conexión con GitHub</string>
+    <string name="Logingithub">Iniciar sesión con GitHub</string>
+    <string name="or"> o también </string>
+    <string name="usePat">Usar un Token de Acceso Personal (PAT)</string>
+    <string name="connectWithtoken">Conectar con Token</string>
 
     <string name="Copied">Copiado</string>
     <string name="Cut">Cortar</string>

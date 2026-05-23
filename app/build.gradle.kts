@@ -55,4 +55,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
     implementation("io.github.reandroid:ARSCLib:1.3.8")
+    implementation ("androidx.drawerlayout:drawerlayout:1.2.0")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
+
 }

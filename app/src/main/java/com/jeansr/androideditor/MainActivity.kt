@@ -7,9 +7,11 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -25,11 +27,13 @@ import java.io.File
 import java.io.FileOutputStream
 
 
+
+
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerProjects: RecyclerView
     private lateinit var projectAdapter: SimpleProjectAdapter
-    private lateinit var Menubutton: ImageButtonWithTxt
 
     // Launcher to import directories
     private val importProjectLauncher = registerForActivityResult(
@@ -43,24 +47,38 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         // Initialize file engine in the background
         Thread { CompilerSetup.initEngineFiles(this) }.start()
-        Menubutton = findViewById(R.id.menubutton)
         recyclerProjects = findViewById(R.id.recyclerProjects)
-
         // ADAPTER CONFIGURATION (Pass the view for the Popup)
         projectAdapter = SimpleProjectAdapter(
             onProjectClick = { openProject(it) },
-            onProjectLongClick = { proyecto, vista -> showOptionsMenu(proyecto, vista) }
+            onProjectLongClick = { project, view -> showOptionsMenu(project, view) }
         )
-
         recyclerProjects.layoutManager = LinearLayoutManager(this)
         recyclerProjects.adapter = projectAdapter
+        val btnGitHubLogin = findViewById<ImageButtonWithTxt>(R.id.btnGitHubLogin)
 
-        findViewById<View>(R.id.btnGitHubLogin).setOnClickListener { showGitHubDialog() }
+        val token = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE).getString(
+            "GITHUB_TOKEN",
+            ""
+        )
+
+        if (!token.isNullOrEmpty()) {
+            btnGitHubLogin.changeText(getString(R.string.github_repositories))
+        } else {
+            btnGitHubLogin.changeText(getString(R.string.Githubconect))
+        }
+
+        btnGitHubLogin.setOnClickListener {
+            showLoginGithubMenu(this, it, token)
+        }
+
         findViewById<View>(R.id.btnNuevoProyecto).setOnClickListener {
-            importProjectLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
+            lifecycleScope.launch(Dispatchers.Main) {
+                showaddMenu(this@MainActivity, it)
+                loadProjects()
+            }
         }
 
         loadProjects()
@@ -74,6 +92,39 @@ class MainActivity : AppCompatActivity() {
     // =========================================================================
     // FLOATING MENU LOGIC (PopupWindow)
     // =========================================================================
+    suspend fun showaddMenu(context: Context, anchorView: View) {
+        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val view = inflater.inflate(R.layout.item_listaddmenu, null)
+
+        // Create the Popup Window
+        val popup = PopupWindow(
+            view,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        // Dismiss on outside touch and add shadow
+        popup.elevation = 30f
+        popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+
+        view.findViewById<View>(R.id.Createnewproject).setOnClickListener {
+            popup.dismiss()
+            Toast.makeText(
+                this,
+                "Sorry this option is not available, soon will be available",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        view.findViewById<View>(R.id.Importfromstorage).setOnClickListener {
+            popup.dismiss()
+            importProjectLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
+            loadProjects()
+        }
+        popup.showAsDropDown(anchorView, 200, -anchorView.height * 2)
+    }
 
     private fun showOptionsMenu(project: File, anchorView: View) {
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
@@ -147,7 +198,9 @@ class MainActivity : AppCompatActivity() {
     private fun loadProjects() {
         lifecycleScope.launch(Dispatchers.IO) {
             val savePath = getExternalFilesDir("Projects") ?: return@launch
-            val projects = savePath.listFiles { it.isDirectory }?.sortedByDescending { it.lastModified() } ?: emptyList()
+            val projects =
+                savePath.listFiles { it.isDirectory }?.sortedByDescending { it.lastModified() }
+                    ?: emptyList()
             withContext(Dispatchers.Main) {
                 projectAdapter.updateProjects(projects)
             }
@@ -176,7 +229,13 @@ class MainActivity : AppCompatActivity() {
                 copyDirectory(sourceDir, destinationDir)
                 withContext(Dispatchers.Main) { loadProjects() }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
@@ -192,70 +251,110 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showGitHubDialog() {
-        val sharedPref = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE)
-        val token = sharedPref.getString("GITHUB_TOKEN", "")
+    private fun showLoginGithubMenu(context: Context, anchorView: View, token: String? = null) {
         if (!token.isNullOrEmpty()) {
             startActivity(Intent(this, GithubControlActivity::class.java))
         } else {
-            val input = EditText(this).apply { hint = getString(R.string.Pastetoken) }
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.Githubconection))
-                .setView(input)
-                .setPositiveButton(getString(R.string.Saveop)) { _, _ ->
-                    sharedPref.edit().putString("GITHUB_TOKEN", input.text.toString()).apply()
-                    startActivity(Intent(this, GithubControlActivity::class.java))
-                }.show()
+            val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+            val view = inflater.inflate(R.layout.logingithub_options, null)
 
+            val popup = PopupWindow(
+                view,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            popup.elevation = 30f
+            popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+            view.findViewById<View>(R.id.btn_github_oauth).setOnClickListener {
+                popup.dismiss()
+                Toast.makeText(
+                    this,
+                    "Sorry this option is not available, soon will be available",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            view.findViewById<View>(R.id.btn_github_token_connect).setOnClickListener {
+                popup.dismiss()
+                val input = findViewById<EditText>(R.id.edt_github_token)
+                val sharedPref = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE)
+                sharedPref.edit().putString("GITHUB_TOKEN", input.text.toString()).apply()
+                startActivity(Intent(this, GithubControlActivity::class.java))
+            }
+
+
+            val rootView = window.decorView.rootView
+            popup.showAtLocation(rootView, Gravity.CENTER, 0, 0)
+
+
+            val container = popup.contentView.rootView
+            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val layoutParams = container.layoutParams as WindowManager.LayoutParams
+
+
+            layoutParams.flags = layoutParams.flags or WindowManager.LayoutParams.FLAG_DIM_BEHIND
+
+            layoutParams.dimAmount = 0.5f
+
+
+            windowManager.updateViewLayout(container, layoutParams)
         }
+
     }
-}
 
 // =============================================================================
 // COMPACT ADAPTER
 // =============================================================================
 
-class SimpleProjectAdapter(
-    private val onProjectClick: (File) -> Unit,
-    private val onProjectLongClick: (File, View) -> Unit
-) : RecyclerView.Adapter<SimpleProjectAdapter.ViewHolder>() {
+    class SimpleProjectAdapter(
+        private val onProjectClick: (File) -> Unit,
+        private val onProjectLongClick: (File, View) -> Unit
+    ) : RecyclerView.Adapter<SimpleProjectAdapter.ViewHolder>() {
 
-    private var projects = listOf<File>()
+        private var projects = listOf<File>()
 
-    fun updateProjects(n: List<File>) {
-        projects = n
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = TextView(parent.context).apply {
-            textSize = 15f
-            setPadding(45, 30, 45, 30)
-            setTextColor(Color.WHITE)
-            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folderproject, 0, 0, 0)
-            compoundDrawablePadding = 35
-
-            val outValue = android.util.TypedValue()
-            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
-            setBackgroundResource(outValue.resourceId)
-
-            layoutParams = ViewGroup.LayoutParams(-1, -2)
-            isClickable = true
-            isFocusable = true
+        fun updateProjects(n: List<File>) {
+            projects = n
+            notifyDataSetChanged()
         }
-        return ViewHolder(view)
-    }
 
-    override fun onBindViewHolder(h: ViewHolder, p: Int) {
-        val proj = projects[p]
-        h.textView.text = proj.name
-        h.itemView.setOnClickListener { onProjectClick(proj) }
-        h.itemView.setOnLongClickListener {
-            onProjectLongClick(proj, it)
-            true
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = TextView(parent.context).apply {
+                textSize = 15f
+                setPadding(45, 30, 45, 30)
+                setTextColor(Color.WHITE)
+                setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_folderproject, 0, 0, 0)
+                compoundDrawablePadding = 35
+
+                val outValue = android.util.TypedValue()
+                context.theme.resolveAttribute(
+                    android.R.attr.selectableItemBackground,
+                    outValue,
+                    true
+                )
+                setBackgroundResource(outValue.resourceId)
+
+                layoutParams = ViewGroup.LayoutParams(-1, -2)
+                isClickable = true
+                isFocusable = true
+            }
+            return ViewHolder(view)
         }
-    }
 
-    override fun getItemCount() = projects.size
-    class ViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
+        override fun onBindViewHolder(h: ViewHolder, p: Int) {
+            val proj = projects[p]
+            h.textView.text = proj.name
+            h.itemView.setOnClickListener { onProjectClick(proj) }
+            h.itemView.setOnLongClickListener {
+                onProjectLongClick(proj, it)
+                true
+            }
+        }
+
+        override fun getItemCount() = projects.size
+        class ViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
+    }
 }
