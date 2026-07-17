@@ -1,6 +1,6 @@
 *Read this in other languages: [Español](README_es.md)*
 
-# Code Editor IDE for Android
+# Code Aditor IDE for Android
 
 A lightweight, powerful, and native Integrated Development Environment (IDE) designed specifically for mobile devices. This project aims to transform the programming experience on Android by offering tools typically only found in desktop environments.
 
