@@ -1,4 +1,4 @@
-Code Editor IDE for Android
+Code Aditor IDE for Android
 Un entorno de desarrollo integrado (IDE) ligero, potente y nativo diseñado específicamente para dispositivos móviles. Este proyecto busca transformar la experiencia de programación en Android, ofreciendo herramientas que normalmente solo se encuentran en entornos de escritorio.
 
 🚀 Características Principales
