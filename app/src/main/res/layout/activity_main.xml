@@ -8,9 +8,11 @@
     android:orientation="horizontal">
 
     <LinearLayout
+        android:id="@+id/menuContainer"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <com.jeansr.androideditor.ImageButtonWithTxt
             android:id="@+id/btnSettings"
@@ -19,7 +21,7 @@
             android:layout_marginTop="10dp"
             android:layout_weight="1"
             app:buttonSrc="@drawable/ic_settings"
-            app:buttonText="@string/Settings"/>
+            app:buttonText="@string/Settings" />
 
         <com.jeansr.androideditor.ImageButtonWithTxt
             android:id="@+id/btnGitHubLogin"
@@ -27,11 +29,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:layout_weight="1"
-            app:buttonSrc="@drawable/ic_github_invertocat_white"
-            app:buttonText="@string/Githubconect"
             android:background="@drawable/bg_input_dark"
             android:backgroundTint="#090909"
-            />
+            app:buttonSrc="@drawable/ic_github_invertocat_white"
+            app:buttonText="@string/Githubconect" />
 
         <com.jeansr.androideditor.ImageButtonWithTxt
             android:id="@+id/btnExtensions"
@@ -40,18 +41,16 @@
             android:layout_marginTop="10dp"
             android:layout_weight="1"
             app:buttonSrc="@drawable/ic_extensions"
-            app:buttonText="@string/extensions"
-            />
+            app:buttonText="@string/extensions" />
 
         <com.jeansr.androideditor.ImageButtonWithTxt
             android:id="@+id/btnShortcuts"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
             app:buttonSrc="@drawable/ic_star"
-            app:buttonText="@string/shortcuts"
-            />
+            app:buttonText="@string/shortcuts" />
 
     </LinearLayout>
 
@@ -60,16 +59,29 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/topAppBar"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#24292E"
-            app:subtitle="@string/My_projects"
-            android:layout_marginBottom="5dp"
-            app:subtitleTextColor="#B0BEC5"
-            app:title="@string/app_name"
-            app:titleTextColor="@android:color/white" />
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/menuExpandBtn"
+                android:layout_width="48dp"
+                android:layout_height="64dp"
+                android:backgroundTint="@color/gray_ob"
+                app:srcCompat="@android:drawable/ic_menu_sort_by_size" />
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/topAppBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:background="#24292E"
+                app:subtitle="@string/My_projects"
+                app:subtitleTextColor="#B0BEC5"
+                app:title="@string/app_name"
+                app:titleTextColor="@android:color/white" />
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"

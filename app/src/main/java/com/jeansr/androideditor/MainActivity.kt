@@ -58,6 +58,13 @@ class MainActivity : AppCompatActivity() {
         recyclerProjects.layoutManager = LinearLayoutManager(this)
         recyclerProjects.adapter = projectAdapter
         val btnGitHubLogin = findViewById<ImageButtonWithTxt>(R.id.btnGitHubLogin)
+        val btnExpandMenu = findViewById<ImageButton>(R.id.menuExpandBtn)
+        val menuContainer = findViewById<LinearLayout>(R.id.menuContainer)
+
+        btnExpandMenu.setOnClickListener {
+            menuContainer.visibility = if (menuContainer.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }
+
 
         val token = getSharedPreferences("CodeAssistPrefs", Context.MODE_PRIVATE).getString(
             "GITHUB_TOKEN",

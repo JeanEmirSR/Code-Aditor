@@ -12,7 +12,7 @@
 
     <LinearLayout
         android:id="@+id/explorerPanel"
-        android:layout_width="220dp"
+        android:layout_width="250dp"
         android:layout_height="match_parent"
         android:background="#252526"
         android:orientation="vertical">
@@ -29,27 +29,28 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:letterSpacing="0.08"
                 android:text="EXPLORADOR"
                 android:textColor="#9E9E9E"
                 android:textSize="11sp"
-                android:letterSpacing="0.08"
                 android:textStyle="bold" />
 
             <ImageButton
-                android:id="@+id/btnExtensions"
+                android:id="@+id/btnResize"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_extensions"
-                app:tint="#9E9E9E"
-                android:padding="4dp" />
+                android:padding="4dp"
+                android:src="@drawable/ic_folderwindowsresize"
+                app:tint="#9E9E9E" />
         </LinearLayout>
 
         <HorizontalScrollView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:fillViewport="true">
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerFiles"
                 android:layout_width="wrap_content"
@@ -67,6 +68,7 @@
             android:orientation="horizontal"
             android:paddingHorizontal="10dp"
             android:visibility="gone">
+
             <TextView
                 android:id="@+id/tvGitBranch"
                 android:layout_width="0dp"
@@ -75,6 +77,7 @@
                 android:text="⎇ main"
                 android:textColor="#4EC9B0"
                 android:textSize="11sp" />
+
             <TextView
                 android:id="@+id/tvGitChanges"
                 android:layout_width="wrap_content"
@@ -199,9 +202,9 @@
                         android:fontFamily="monospace"
                         android:gravity="top|start"
                         android:inputType="textMultiLine|textNoSuggestions"
-                        android:padding="16dp"
+                        android:padding="12dp"
                         android:textColor="#D4D4D4"
-                        android:textSize="14sp" />
+                        android:textSize="10sp" />
                 </HorizontalScrollView>
             </ScrollView>
 

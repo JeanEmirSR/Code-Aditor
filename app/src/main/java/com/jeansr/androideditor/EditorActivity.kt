@@ -33,6 +33,8 @@ import java.io.File
 import java.io.FileOutputStream
 // ── NUEVO GIT: imports adicionales ──
 import androidx.appcompat.app.AlertDialog
+import android.view.MotionEvent
+
 
 class EditorActivity : AppCompatActivity() {
 
@@ -43,6 +45,7 @@ class EditorActivity : AppCompatActivity() {
     // =========================================================================
 
     private enum class RenderMode { ORIGINAL, LINEAR, RELATIVE }
+
     private var currentRenderMode = RenderMode.LINEAR
     private var currentZeroDpBehavior = "wrap_content"
     private var controlPanel: LinearLayout? = null
@@ -87,6 +90,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var btnGitSync: Button
     private lateinit var btnGitCommit: Button
     private lateinit var fragment_container: FrameLayout
+    private lateinit var btnfolderresize: ImageButton
 
     private lateinit var gitManager: GitManager
     private var gitRepoInfo: GitManager.RepoInfo? = null
@@ -114,6 +118,11 @@ class EditorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editor)
 
+        //Metrics
+        val displayMetrics = this.resources.displayMetrics
+        val screenWidthPixels = displayMetrics.widthPixels
+        val density = displayMetrics.density
+
         explorerPanel = findViewById(R.id.explorerPanel)
         panelDivider = findViewById(R.id.panelDivider)
         editorCodeArea = findViewById(R.id.editorCodeArea)
@@ -124,6 +133,53 @@ class EditorActivity : AppCompatActivity() {
         setupTabsRecyclerView()
         quickSymbolBar = findViewById(R.id.quickSymbolBar)
         fragment_container = findViewById(R.id.fragment_container)
+        btnfolderresize = findViewById(R.id.btnResize)
+        var sizeexplorer = false
+        var pDividercord = 0f
+        var pDividerwith = 0
+        btnfolderresize.setOnClickListener {
+            if (explorerPanel.visibility == View.VISIBLE && sizeexplorer != true) {
+                panelDivider.layoutParams.width = 20
+                panelDivider.setBackgroundColor(Color.parseColor("#FFFFFF"))
+                panelDivider.requestLayout()
+                sizeexplorer = true
+            } else {
+                panelDivider.layoutParams.width = 1
+                panelDivider.setBackgroundColor(Color.parseColor("#333333"))
+                panelDivider.requestLayout()
+                sizeexplorer = false
+            }
+        }
+
+        panelDivider.setOnTouchListener { _, event ->
+            if (sizeexplorer != true) {
+                return@setOnTouchListener false
+            }
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    pDividercord = event.rawX
+                    pDividerwith = explorerPanel.layoutParams.width
+                    true
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - pDividercord
+                    var newWidth = (pDividerwith + deltaX).toInt()
+                    val minWidth = (screenWidthPixels * 0.2f).toInt()
+                    val maxWidth = (screenWidthPixels * 0.7f).toInt()
+                    if (newWidth < minWidth) newWidth = minWidth
+                    if (newWidth > maxWidth) newWidth = maxWidth
+                    explorerPanel.layoutParams.width = newWidth
+                    explorerPanel.requestLayout()
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+
+
 
         configureConsole()
 
@@ -1273,7 +1329,7 @@ class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: 
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val (file, depth) = files[position]
-        holder.itemView.setPadding(16 + (depth * 20), 12, 32, 12)
+        holder.itemView.setPadding(12 + (depth * 20), 12, 32, 12)
         holder.textView.text = file.name
 
         if (file.isDirectory) {

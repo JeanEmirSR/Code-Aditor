@@ -21,7 +21,7 @@ class LineNumberEditText @JvmOverloads constructor(
         color = "#1E1E1E".toColorInt() // Margins background
     }
 
-    private val paddingLeftCustom = 100 // Numbers padding left
+    private val paddingLeftCustom = 50 // Numbers padding left
 
     init {
 
