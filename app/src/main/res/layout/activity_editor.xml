@@ -32,7 +32,7 @@
                 android:letterSpacing="0.08"
                 android:text="EXPLORADOR"
                 android:textColor="#9E9E9E"
-                android:textSize="11sp"
+                android:textSize="8sp"
                 android:textStyle="bold" />
 
             <ImageButton
@@ -56,7 +56,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingBottom="16dp" />
+                android:paddingBottom="11dp" />
         </HorizontalScrollView>
 
         <LinearLayout
@@ -114,38 +114,6 @@
                 android:src="@drawable/ic_fileswindow"
                 android:padding="10dp" />
 
-            <LinearLayout
-                android:id="@+id/gitOpcions"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:background="?attr/selectableItemBackground"
-                android:paddingHorizontal="8dp"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_githubconneccion"
-                    app:tint="#9E9E9E" />
-                <TextView
-                    android:id="@+id/tvToolbarBranch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="main"
-                    android:textColor="#9E9E9E"
-                    android:textSize="11sp" />
-                <View
-                    android:id="@+id/dotGitPending"
-                    android:layout_width="6dp"
-                    android:layout_height="6dp"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/circle_orange"
-                    android:visibility="gone" />
-            </LinearLayout>
-
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTabs"
                 android:layout_width="0dp"
@@ -155,6 +123,7 @@
                 app:tabIndicatorColor="#6200EE"
                 app:tabTextColor="#9E9E9E"
                 app:tabSelectedTextColor="#FFFFFF"
+
                 android:background="#2D2D30" />
 
             <ImageButton
@@ -167,12 +136,35 @@
                 app:tint="#D4D4D4" />
 
             <ImageButton
+                android:id="@+id/btnGitPanel"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_githubconneccion"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:background="?attr/selectableItemBackground"
+                app:tint="#D4D4D4" />
+
+            <View
+                android:id="@+id/dotGitPending"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginStart="-20dp"
+                android:layout_marginTop="15dp"
+                android:layout_marginEnd="14dp"
+                android:background="@drawable/circle_orange"
+                android:visibility="gone" />
+
+            <ImageButton
                 android:id="@+id/btnPreview"
                 android:layout_width="40dp"
                 android:layout_height="match_parent"
                 android:background="?attr/selectableItemBackground"
-                android:src="@drawable/ic_preview"
                 android:padding="10dp"
+                android:src="@drawable/ic_preview"
+                android:visibility="gone"
                 app:tint="#D4D4D4" />
         </LinearLayout>
 
@@ -236,9 +228,9 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="CONTROL DE FUENTE"
+                        android:text="@string/GitPanel"
                         android:textColor="#9E9E9E"
-                        android:textSize="11sp"
+                        android:textSize="10sp"
                         android:textStyle="bold" />
 
                     <ImageButton
@@ -247,7 +239,7 @@
                         android:layout_height="28dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@android:drawable/ic_menu_close_clear_cancel"
-                        app:tint="#9E9E9E" />
+                        app:tint="#D4D4D4" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -262,6 +254,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="⎇ main"
+                        android:textSize="12sp"
                         android:textColor="#4EC9B0" />
 
                     <TextView
@@ -277,43 +270,44 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="#2D2D30"
-                    android:padding="8dp">
+                    android:padding="14dp">
 
                     <Button
                         android:id="@+id/btnGitPull"
                         android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="2dp"
+                        android:layout_height="34dp"
+                        android:layout_margin="1dp"
                         android:layout_weight="1"
                         android:text="Pull"
-                        android:textSize="10sp" />
+                        android:textSize="8sp" />
 
                     <Button
                         android:id="@+id/btnGitPush"
                         android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="2dp"
+                        android:layout_height="34dp"
+                        android:layout_margin="1dp"
                         android:layout_weight="1"
                         android:text="Push"
-                        android:textSize="10sp" />
+                        android:textSize="8sp" />
 
                     <Button
                         android:id="@+id/btnGitSync"
                         android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="2dp"
+                        android:layout_height="34dp"
+                        android:layout_margin="1dp"
                         android:layout_weight="1"
                         android:text="Sync"
-                        android:textSize="10sp" />
+                        android:textSize="8sp" />
                 </LinearLayout>
 
                 <EditText
                     android:id="@+id/etCommitMessage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="10dp"
+                    android:layout_margin="8dp"
                     android:background="#333333"
-                    android:hint="Mensaje..."
+                    android:hint="@string/Descriptioncommit"
+                    android:textSize="10sp"
                     android:padding="10dp"
                     android:textColor="#FFFFFF" />
 
@@ -321,9 +315,11 @@
                     android:id="@+id/btnGitCommit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="10dp"
+                    android:layout_marginHorizontal="8dp"
                     android:backgroundTint="#0E639C"
-                    android:text="Commit" />
+                    android:text="Commit"
+                    android:textSize="10sp"
+                    />
 
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/tabGit"
@@ -344,14 +340,30 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:background="#2D2D30"
-            android:scrollbars="none">
+            android:scrollbars="none"
+            android:visibility="gone">
+
             <LinearLayout
                 android:id="@+id/quickSymbolBar"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="8dp" />
+                android:paddingHorizontal="8dp">
+
+                <LinearLayout
+                    android:id="@+id/gitOpcion"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="8dp">
+
+                </LinearLayout>
+            </LinearLayout>
         </HorizontalScrollView>
 
     </LinearLayout>

@@ -68,6 +68,8 @@
     <string name="Gitpushpulldone">> [Git] Synchronization done</string>
     <string name="Gitpushpullerror">[Git] Synchronization Error:</string>
     <string name="Tokeninvalid">The token is invalid</string>
+    <string name="Descriptioncommit">Commit description&#8230;</string>
+    <string name="GitPanel">Git Panel</string>
 
     <!--Github Control Activity -->
     <string name="Description">Description:</string>

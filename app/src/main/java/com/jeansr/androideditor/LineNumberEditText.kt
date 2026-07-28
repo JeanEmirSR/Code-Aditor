@@ -21,29 +21,69 @@ class LineNumberEditText @JvmOverloads constructor(
         color = "#1E1E1E".toColorInt() // Margins background
     }
 
-    private val paddingLeftCustom = 50 // Numbers padding left
+    private val paddingLeftCustom = 80 // Numbers padding left
 
     init {
-
         setPadding(paddingLeftCustom, paddingTop, paddingRight, paddingBottom)
+
+        // --- ENCAPSULATED EDITOR SETTINGS ---
+        // Disable spell checker and smart suggestions natively inside the component.
+        // This ensures maximum typing performance anywhere this view is used.
+        this.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawRect(0f, 0f, paddingLeftCustom.toFloat() - 10f, height.toFloat(), backgroundPaint)
+        val currentLayout = layout ?: run {
+            super.onDraw(canvas)
+            return
+        }
 
-        var baseline = baseline.toFloat()
-        val lineCount = lineCount
-        val layout = layout
+        // 1. Draw the gutter background anchored to the current scroll position.
+        // Using scrollY and scrollX ensures the background doesn't disappear when scrolling!
+        canvas.drawRect(
+            scrollX.toFloat(),
+            scrollY.toFloat(),
+            (scrollX + paddingLeftCustom - 10).toFloat(),
+            (scrollY + height).toFloat(),
+            backgroundPaint
+        )
 
-        for (i in 0 until lineCount) {
-            val lineNumber = (i + 1).toString()
+        // 2. Get ONLY the visible lines on the screen
+        val currentScrollY = scrollY
+        val firstVisibleLine = currentLayout.getLineForVertical(currentScrollY)
+        val lastVisibleLine = currentLayout.getLineForVertical(currentScrollY + height)
 
-            // Solo dibujamos el número si es el inicio de una línea real (no un wrap)
-            if (layout.getLineStart(i) == 0 || text?.get(layout.getLineStart(i) - 1) == '\n') {
-                canvas.drawText(lineNumber, paddingLeftCustom.toFloat() - 25f, baseline, linePaint)
+        // 3. Calculate the REAL line number for the first visible line (ignoring word-wraps)
+        val startOffset = currentLayout.getLineStart(firstVisibleLine)
+        var realLineNumber = 1
+
+        val textSequence = text ?: ""
+        // This loop is ultra-fast and creates zero memory garbage
+        for (i in 0 until startOffset) {
+            if (textSequence[i] == '\n') {
+                realLineNumber++
             }
+        }
 
-            baseline += lineHeight
+        // 4. Draw the numbers ONLY for the visible block (e.g., 30 iterations instead of 5,000)
+        for (i in firstVisibleLine..lastVisibleLine) {
+            val lineStart = currentLayout.getLineStart(i)
+
+            // Draw the number only if it's the actual start of a line (not a word-wrap break)
+            if (lineStart == 0 || textSequence[lineStart - 1] == '\n') {
+                val baseline = currentLayout.getLineBaseline(i).toFloat()
+
+                canvas.drawText(
+                    realLineNumber.toString(),
+                    (scrollX + paddingLeftCustom - 25).toFloat(),
+                    baseline,
+                    linePaint
+                )
+                realLineNumber++
+            }
         }
 
         super.onDraw(canvas)

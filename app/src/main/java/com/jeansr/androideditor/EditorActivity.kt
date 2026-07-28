@@ -4,6 +4,8 @@ import SyntaxColorInfo
 import SyntaxHighlighter
 import TabAdapter
 
+import android.view.inputmethod.InputMethodManager
+import android.text.Selection
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.widget.PopupWindow
 import android.view.ViewGroup.LayoutParams
@@ -61,6 +63,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var tabAdapter: TabAdapter
     private lateinit var quickSymbolBar: LinearLayout
     private lateinit var tvConsole: TextView
+    private lateinit var btnpreview: ImageButton
 
     private lateinit var projectRoot: File
     private val expandedFolders = mutableSetOf<String>()
@@ -77,7 +80,6 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var gitStatusBar: LinearLayout
     private lateinit var tvGitBranch: TextView
     private lateinit var tvGitChanges: TextView
-    private lateinit var tvToolbarBranch: TextView
     private lateinit var dotGitPending: View
     private lateinit var tvGitPanelBranch: TextView
     private lateinit var tvGitPanelStatus: TextView
@@ -89,6 +91,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var btnGitPush: Button
     private lateinit var btnGitSync: Button
     private lateinit var btnGitCommit: Button
+    private lateinit var btnGitPanel: ImageButton
     private lateinit var fragment_container: FrameLayout
     private lateinit var btnfolderresize: ImageButton
 
@@ -101,6 +104,7 @@ class EditorActivity : AppCompatActivity() {
     private val highlightingHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var highlightingRunnable: Runnable? = null
     private lateinit var highlightingTextWatcher: android.text.TextWatcher
+
 
     // State variables to prevent multiple menus and actions from opening
     private var fileOnClipboard: File? = null
@@ -126,9 +130,14 @@ class EditorActivity : AppCompatActivity() {
         explorerPanel = findViewById(R.id.explorerPanel)
         panelDivider = findViewById(R.id.panelDivider)
         editorCodeArea = findViewById(R.id.editorCodeArea)
+        editorCodeArea.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
         recyclerFiles = findViewById(R.id.recyclerFiles)
         codeScrollContainer = findViewById(R.id.codeScrollContainer)
         previewContainer = findViewById(R.id.previewContainer)
+        btnpreview = findViewById(R.id.btnPreview)
         rvTabs = findViewById(R.id.rvTabs)
         setupTabsRecyclerView()
         quickSymbolBar = findViewById(R.id.quickSymbolBar)
@@ -195,7 +204,7 @@ class EditorActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.btnSave).setOnClickListener { saveActualFile() }
         findViewById<ImageButton>(R.id.btnPreview).setOnClickListener { switchPreview() }
 
-        configureSymbolBar()
+        //configureSymbolBar()
         setupTabsRecyclerView()
 
         fileAdapter = FileAdapter(
@@ -207,7 +216,7 @@ class EditorActivity : AppCompatActivity() {
         recyclerFiles.adapter = fileAdapter
 
         refreshFileTree()
-        inicializarGit()
+        setupGit()
         setupSyntaxHighlighting()
         setupScrollListener()
 
@@ -233,7 +242,7 @@ class EditorActivity : AppCompatActivity() {
     private fun setupTabsRecyclerView() {
         tabAdapter = TabAdapter(
             onTabClick = { openFileInTab(it) },
-            onTabClose = { colseTab(it) }
+            onTabClose = { closeTab(it) }
         )
 
         rvTabs.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -487,35 +496,146 @@ class EditorActivity : AppCompatActivity() {
     // FILE MANAGEMENT, GIT, AND UTILITIES
     // =========================================================================
 
-    private var fullFileColorMap: List<SyntaxColorInfo>? = null
-   // private var backgroundJob: kotlinx.coroutines.Job? = null
+    private var backgroundJob: kotlinx.coroutines.Job? = null
+    private var fullFileColorMap = listOf<SyntaxColorInfo>()
+    private var scrollRunnable: Runnable? = null
+    private var isUserTouching = false
 
-    /*
-    private fun iniciarResaltadoHibrido(content: String, ext: String) {
-        // 1. PINTADO RÁPIDO (Lo que el usuario ve ya mismo)
-        ejecutarResaltadoViewport()
+    private fun setupScrollListener() {
+        var lastScrollY = -1
+        codeScrollContainer.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    isUserTouching = true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    // We wait a tiny bit before setting it to false to allow quick swipes (flings)
+                    codeScrollContainer.postDelayed({ isUserTouching = false }, 150)
+                }
+            }
+            false // Return false so the ScrollView can still process the scroll normally
+        }
+        codeScrollContainer.setOnGenericMotionListener { _, event ->
+            if (event.action == MotionEvent.ACTION_SCROLL) {
+                isUserTouching = true
 
-        // 2. ESCANEO TOTAL EN SEGUNDO PLANO
-        backgroundJob?.cancel()
-        backgroundJob = lifecycleScope.launch(Dispatchers.Default) {
-            val nuevoMapa = highlighter.generateColorMap(content, ext)
-            withContext(Dispatchers.Main) {
-                fullFileColorMap = nuevoMapa
-                log("> Jarvis Engine: Mapa de sintaxis completo.")
+                codeScrollContainer.postDelayed({ isUserTouching = false }, 150)
+            }
+            false
+        }
+
+        codeScrollContainer.viewTreeObserver.addOnScrollChangedListener {
+            val currentScrollY = codeScrollContainer.scrollY
+
+            if (Math.abs(currentScrollY - lastScrollY) > 10) {
+                lastScrollY = currentScrollY
+
+                if (isUserTouching && editorCodeArea.hasFocus()) {
+                    editorCodeArea.clearFocus()
+                    editorCodeArea.text?.let { Selection.removeSelection(it) }
+
+                    val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    inputMethodManager.hideSoftInputFromWindow(editorCodeArea.windowToken, 0)
+                }
+
+                scrollRunnable?.let { highlightingHandler.removeCallbacks(it) }
+
+                scrollRunnable = Runnable {
+                    if (fullFileColorMap.isNotEmpty() && !isShowingPreview) {
+                        paintVisibleAreaFromMap()
+                    }
+                }
+
+                highlightingHandler.postDelayed(scrollRunnable!!, 150)
             }
         }
     }
 
-     */
+    private fun startProgressiveHighlighting(extension: String) {
+        backgroundJob?.cancel()
+
+
+        runViewportHighlighting()
+
+
+        backgroundJob = lifecycleScope.launch(Dispatchers.Default) {
+            val snapshot = editorCodeArea.text.toString()
+
+
+            val generatedMap = highlighter.generateColorMap(snapshot, extension)
+
+            withContext(Dispatchers.Main) {
+                // Save the map in memory
+                fullFileColorMap = generatedMap
+
+
+                log("> Engine: Syntax map built successfully.")
+            }
+        }
+    }
+
+    private fun paintVisibleAreaFromMap() {
+        val layout = editorCodeArea.layout ?: return
+        val content = editorCodeArea.text ?: return
+
+        val scrollY = codeScrollContainer.scrollY
+        val height = codeScrollContainer.height
+        val firstLine = layout.getLineForVertical(scrollY)
+        val lastLine = layout.getLineForVertical(scrollY + height)
+
+        val startOffset = layout.getLineStart((firstLine - 20).coerceAtLeast(0))
+        val endOffset = layout.getLineEnd((lastLine + 20).coerceAtMost(editorCodeArea.lineCount - 1))
+
+        editorCodeArea.removeTextChangedListener(highlightingTextWatcher)
+
+        //  DELETE ALL SPANS IN THE FILE. This keeps the EditText lightning fast.
+        val oldSpans = content.getSpans(0, content.length, ForegroundColorSpan::class.java)
+        for (span in oldSpans) {
+            content.removeSpan(span)
+        }
+
+        //  FILTER the map to get ONLY the colors that belong on the screen
+        val visibleColors = fullFileColorMap.filter { it.start < endOffset && it.end > startOffset }
+
+        //  APPLY spans only to the visible area
+        for (info in visibleColors) {
+            val s = info.start.coerceIn(0, content.length)
+            val e = info.end.coerceIn(0, content.length)
+            if (s < e) {
+                content.setSpan(
+                    ForegroundColorSpan(info.color),
+                    s,
+                    e,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+
+        editorCodeArea.addTextChangedListener(highlightingTextWatcher)
+    }
 
     private fun setupSyntaxHighlighting() {
         highlightingTextWatcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
             override fun afterTextChanged(s: android.text.Editable?) {
+
+                backgroundJob?.cancel()
                 highlightingRunnable?.let { highlightingHandler.removeCallbacks(it) }
-                highlightingRunnable = Runnable { s?.let { runViewportHighlighting() } }
-                highlightingHandler.postDelayed(highlightingRunnable!!, 150)
+
+
+                highlightingRunnable = Runnable {
+
+                    fileCurrentlyOpen?.let { file ->
+
+                        fullFileColorMap = emptyList()
+
+                        startProgressiveHighlighting(file.extension)
+                    }
+                }
+
+                highlightingHandler.postDelayed(highlightingRunnable!!, 1000)
             }
         }
         editorCodeArea.addTextChangedListener(highlightingTextWatcher)
@@ -534,46 +654,18 @@ class EditorActivity : AppCompatActivity() {
         val startOffset = layout.getLineStart((firstLine - 10).coerceAtLeast(0))
         val endOffset = layout.getLineEnd((lastLine + 50).coerceAtMost(editorCodeArea.lineCount - 1))
 
+        // Temporarily disable the listener to avoid infinite loops
         editorCodeArea.removeTextChangedListener(highlightingTextWatcher)
 
-        if (fullFileColorMap != null) {
+        // Clear and paint ONLY the visible block.
+        // Spans outside this range (created by the progressive engine) will remain intact.
+        highlighter.applyHighlighting(content, ext, startOffset, endOffset)
 
-            val visibleColors = fullFileColorMap!!.filter { it.start >= startOffset && it.end <= endOffset }
-
-            val oldSpans = content.getSpans(startOffset, endOffset, ForegroundColorSpan::class.java)
-            oldSpans.forEach { content.removeSpan(it) }
-
-            for (info in visibleColors) {
-                content.setSpan(ForegroundColorSpan(info.color), info.start, info.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-        } else {
-
-            highlighter.applyHighlighting(content, ext, startOffset, endOffset)
-        }
-
+        // Reactivate the listener
         editorCodeArea.addTextChangedListener(highlightingTextWatcher)
     }
 
-    private fun setupScrollListener() {
-        var lastScrollY = -1
 
-        codeScrollContainer.viewTreeObserver.addOnScrollChangedListener {
-            val currentScrollY = codeScrollContainer.scrollY
-
-
-            if (Math.abs(currentScrollY - lastScrollY) > 20) {
-                lastScrollY = currentScrollY
-
-                highlightingHandler.removeCallbacks(highlightingRunnable ?: Runnable {})
-                highlightingRunnable = Runnable {
-                    if (!isShowingPreview) runViewportHighlighting()
-                }
-
-
-                highlightingHandler.postDelayed(highlightingRunnable!!, 100)
-            }
-        }
-    }
 
     private fun switchFocusToTab(file: File) {
         fileCurrentlyOpen = file
@@ -581,7 +673,9 @@ class EditorActivity : AppCompatActivity() {
         editorCodeArea.setText(contenido)
 
         // Syntax highlighting
-        editorCodeArea.post { runViewportHighlighting() }
+        editorCodeArea.post {
+            startProgressiveHighlighting(file.extension)
+        }
 
         // Update adapter visual state (Active tab)
         tabAdapter.updateData(openTabs, file)
@@ -600,9 +694,15 @@ class EditorActivity : AppCompatActivity() {
             val text = editorCodeArea.text.toString()
             lifecycleScope.launch(Dispatchers.IO) {
                 file.writeText(text)
-                withContext(Dispatchers.Main) { Toast.makeText(this@EditorActivity, "Guardado", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) { Toast.makeText(this@EditorActivity, "Save", Toast.LENGTH_SHORT).show() }
             }
         }
+        lifecycleScope.launch(Dispatchers.IO){
+            if(gitManager.getRepoInfo().isGitRepo){
+                refreshGitStatus()
+            }
+        }
+
     }
 
     private fun refreshFileTree() {
@@ -737,7 +837,7 @@ class EditorActivity : AppCompatActivity() {
 
                                 // 2. Iterate and delegate the work to colseTab function
                                 closeFiles.forEach { archivo ->
-                                    colseTab(archivo)
+                                    closeTab(archivo)
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
@@ -936,6 +1036,13 @@ class EditorActivity : AppCompatActivity() {
         fileCurrentlyOpen?.let { fileContentsMemory[it.absolutePath] = editorCodeArea.text.toString() }
 
         val index = openTabs.indexOf(file)
+        lifecycleScope.launch(Dispatchers.Main){
+            if(file.extension=="xml"){
+                btnpreview.visibility=View.VISIBLE
+            }else{
+                btnpreview.visibility=View.GONE
+            }
+        }
         if (index == -1) {
             openTabs.add(file)
             lifecycleScope.launch(Dispatchers.IO) {
@@ -949,16 +1056,22 @@ class EditorActivity : AppCompatActivity() {
             }
         } else {
             switchFocusToTab(file)
+
         }
     }
 
-    private fun colseTab(file: File) {
+    private fun closeTab(file: File) {
         val index = openTabs.indexOf(file)
         if (index == -1) return
 
         openTabs.removeAt(index)
         fileContentsMemory.remove(file.absolutePath)
-
+        if(isShowingPreview){
+            previewContainer.clear()
+            btnpreview.visibility=View.GONE
+            previewContainer.visibility=View.GONE
+            isShowingPreview=false
+        }
         if (fileCurrentlyOpen == file) {
             if (openTabs.isNotEmpty()) {
                 val nextIndex = if (index < openTabs.size) index else openTabs.size - 1
@@ -974,13 +1087,12 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun inicializarGit() {
+    private fun setupGit() {
         gitManager = GitManager(projectRoot)
         gitPanel = findViewById(R.id.gitPanel)
         gitStatusBar = findViewById(R.id.gitStatusBar)
         tvGitBranch = findViewById(R.id.tvGitBranch)
         tvGitChanges = findViewById(R.id.tvGitChanges)
-        tvToolbarBranch = findViewById(R.id.tvToolbarBranch)
         dotGitPending = findViewById(R.id.dotGitPending)
         tvGitPanelBranch = findViewById(R.id.tvGitPanelBranch)
         tvGitPanelStatus = findViewById(R.id.tvGitPanelStatus)
@@ -988,6 +1100,7 @@ class EditorActivity : AppCompatActivity() {
         recyclerGitItems = findViewById(R.id.recyclerGitItems)
         tabGit = findViewById(R.id.tabGit)
         btnCloseGitPanel = findViewById(R.id.btnCloseGitPanel)
+        btnGitPanel= findViewById(R.id.btnGitPanel)
         btnGitPull = findViewById(R.id.btnGitPull)
         btnGitPush = findViewById(R.id.btnGitPush)
         btnGitSync = findViewById(R.id.btnGitSync)
@@ -1024,8 +1137,17 @@ class EditorActivity : AppCompatActivity() {
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
-
-        findViewById<LinearLayout>(R.id.gitOpcions).setOnClickListener { toggleGitPanel() }
+        lifecycleScope.launch {
+            val gitinfo = gitManager.getRepoInfo()
+            if(gitinfo.isGitRepo==true){
+                runOnUiThread {
+                    btnGitPanel.visibility = View.VISIBLE
+                    btnGitPanel.setOnClickListener { toggleGitPanel() }
+                }
+            }else{
+                runOnUiThread { btnGitPanel.visibility = View.GONE }
+            }
+        }
         btnCloseGitPanel.setOnClickListener { closeGitPanel() }
 
         // Connecting buttons with execution functions
@@ -1034,14 +1156,11 @@ class EditorActivity : AppCompatActivity() {
         btnGitPush.setOnClickListener { executePush() }
         btnGitSync.setOnClickListener { executeSync() }
 
-        lifecycleScope.launch { cargarInfoRepoYActualizar() }
+        lifecycleScope.launch { refreshGitInfo() }
     }
-
     private fun toggleGitPanel() { if (gitPanel.visibility == View.VISIBLE) closeGitPanel() else openGitPanel() }
     private fun openGitPanel() { gitPanel.visibility = View.VISIBLE; gitPanel.alpha = 0f; gitPanel.animate().alpha(1f).setDuration(180).start(); refreshGitStatus() }
     private fun closeGitPanel() { gitPanel.animate().alpha(0f).setDuration(150).withEndAction { gitPanel.visibility = View.GONE }.start() }
-
-
     private fun refreshGitStatus() {
         lifecycleScope.launch {
             val cambios = gitManager.getChangedFiles()
@@ -1207,15 +1326,13 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun cargarInfoRepoYActualizar() {
+    private suspend fun refreshGitInfo() {
         gitRepoInfo = gitManager.getRepoInfo()
         withContext(Dispatchers.Main) {
             val info = gitRepoInfo ?: return@withContext
             if (!info.isGitRepo) {
-                tvToolbarBranch.text = "no-git"
                 return@withContext
             }
-            tvToolbarBranch.text = info.branch
             tvGitBranch.text = "⎇ ${info.branch}"
             tvGitPanelBranch.text = "⎇ ${info.branch}"
             gitStatusBar.visibility = View.VISIBLE
@@ -1252,7 +1369,7 @@ class EditorActivity : AppCompatActivity() {
     private fun showTokenDialog() {
         val input = EditText(this).apply { hint = "ghp_xxxxxxxxxxxx" }
         android.app.AlertDialog.Builder(this).setTitle("Token GitHub").setView(input).setPositiveButton("OK") { _, _ ->
-            val t = input.text.toString(); if (t.isNotBlank()) { getSharedPreferences("AppPrefs", MODE_PRIVATE).edit().putString("GITHUB_TOKEN", t).apply(); lifecycleScope.launch { cargarInfoRepoYActualizar() } }
+            val t = input.text.toString(); if (t.isNotBlank()) { getSharedPreferences("AppPrefs", MODE_PRIVATE).edit().putString("GITHUB_TOKEN", t).apply(); lifecycleScope.launch { refreshGitInfo() } }
         }.show()
     }
 
@@ -1267,7 +1384,7 @@ class EditorActivity : AppCompatActivity() {
         val mainContainer = codeScrollContainer.parent as ViewGroup
         mainContainer.addView(tvConsole, mainContainer.indexOfChild(codeScrollContainer) + 1)
     }
-
+/*
     private fun configureSymbolBar() {
         listOf("{", "}", "<", ">", "/", "=", "\"", "(", ")", ";").forEach { s ->
             val b = TextView(this).apply { text = s; textSize = 18f; setPadding(30, 10, 30, 10); setTextColor(Color.WHITE); setOnClickListener { editorCodeArea.text?.insert(editorCodeArea.selectionStart, s) } }
@@ -1275,7 +1392,7 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-
+*/
     private suspend fun setupCompiler() {
         aapt2File = File(applicationInfo.nativeLibraryDir, "libaapt2.so")
         androidJarFile = File(filesDir, "android_framework_api33.jar")
@@ -1292,8 +1409,6 @@ class EditorActivity : AppCompatActivity() {
             ShellResult(p.waitFor() == 0, p.inputStream.bufferedReader().readText(), p.errorStream.bufferedReader().readText())
         } catch (e: Exception) { ShellResult(false, "", e.message ?: "Error Shell") }
     }
-
-
 
 
     private fun dpToPx(dp: Float): Int = (dp * resources.displayMetrics.density).toInt()
@@ -1329,7 +1444,7 @@ class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: 
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val (file, depth) = files[position]
-        holder.itemView.setPadding(12 + (depth * 20), 12, 32, 12)
+        holder.itemView.setPadding(12 + (depth * 20), 10, 15, 12)
         holder.textView.text = file.name
 
         if (file.isDirectory) {

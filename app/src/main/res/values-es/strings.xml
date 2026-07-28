@@ -64,6 +64,8 @@
     <string name="Gitpushpulldone">> [Git] Sincronización finalizada</string>
     <string name="Gitpushpullerror">[Git] Error en Sincronización:</string>
     <string name="Tokeninvalid">El token no es válido</string>
+    <string name="Descriptioncommit">Descripción del commit&#8230;</string>
+    <string name="GitPanel">Panel de Git</string>
 
     <string name="Description">Descripción:</string>
     <string name="Cloneurl">URL de clonación:</string>

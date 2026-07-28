@@ -210,10 +210,11 @@ class GithubControlActivity : AppCompatActivity() {
 
             holder.btnMenu.setOnClickListener { view ->
                 val popup = PopupMenu(view.context, view)
+                val stringCloneRepo = view.context.getString(R.string.Clonelocal)
 
-                popup.menu.add(R.string.Clonelocal.toString())
+                popup.menu.add(stringCloneRepo)
                 popup.setOnMenuItemClickListener { item ->
-                    if (item.title == R.string.Clonelocal.toString()) {
+                    if (item.title == stringCloneRepo) {
                         onCloneClick(repo)
                     }
                     true
