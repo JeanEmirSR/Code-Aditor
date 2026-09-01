@@ -4,14 +4,15 @@ plugins {
 
 android {
     namespace = "com.jeansr.androideditor"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
+    
     packaging {
         jniLibs {
             useLegacyPackaging = true
+        }
+        resources {
+            pickFirst("**/*.kotlin_builtins")
+            pickFirst("META-INF/*.kotlin_module")
         }
     }
 
@@ -57,5 +58,6 @@ dependencies {
     implementation("io.github.reandroid:ARSCLib:1.3.8")
     implementation ("androidx.drawerlayout:drawerlayout:1.2.0")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
-
+    implementation("com.android.tools:r8:8.13.19")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.2.0")
 }

@@ -40,6 +40,7 @@ import dalvik.system.DexClassLoader
 import com.jeansr.androideditor.libs.LibraryPreparer
 import com.jeansr.androideditor.libs.PreparedLibrary
 import com.jeansr.androideditor.libs.MavenResolver
+import com.jeansr.androideditor.libs.ProjectSourceCompiler
 
 
 class EditorActivity : AppCompatActivity() {
@@ -80,6 +81,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var androidJarFile: File
     private lateinit var materialLibFile: File
     private lateinit var libraryPreparer: LibraryPreparer
+    private lateinit var projectSourceCompiler: ProjectSourceCompiler
     private val resolvedLibraries = mutableListOf<PreparedLibrary>()
 
     private lateinit var gitPanel: LinearLayout
@@ -331,7 +333,9 @@ class EditorActivity : AppCompatActivity() {
             val compiledZip = File(workspace, "compiled.zip")
 
             val dependencyCoordinates = parseProjectDependencies()
-            val preparedLibraries = dependencyCoordinates.mapNotNull { coordinate -> resolveLibrary(coordinate, workspace) }
+            val preparedLibraries = dependencyCoordinates.mapIndexedNotNull { index, coordinate ->
+                resolveLibrary(coordinate, workspace, packageId = 0x03 + index)
+            }
 
             val resCompile = runShell("${aapt2File.absolutePath} compile --dir ${buildResDir.absolutePath} -o ${compiledZip.absolutePath}")
             if (!resCompile.success) { log("[ERROR COMPILE]\n${resCompile.error}", true); return@launch }
@@ -342,14 +346,21 @@ class EditorActivity : AppCompatActivity() {
             if (!resLink.success) { log("[ERROR LINK]\n${resLink.error}", true); return@launch }
 
             log("> [SUCCESS] Mini-APK generated in ${System.currentTimeMillis() - tiempoInicio}ms.")
-            withContext(Dispatchers.Main) { injectAndDraw(outputApk.absolutePath, preparedLibraries) }
+
+            val projectDex = projectSourceCompiler.compile(
+                sourceRoots = listOf(File(projectRoot, "app/src/main/java"), File(projectRoot, "app/src/main/kotlin")),
+                classpathJars = preparedLibraries.mapNotNull { it.classesJar },
+                workDir = workspace
+            )
+
+            withContext(Dispatchers.Main) { injectAndDraw(outputApk.absolutePath, preparedLibraries, projectDex) }
         }
     }
 
-    private fun resolveLibrary(coordinate: MavenResolver.Coordinate, workspace: File): PreparedLibrary? {
+    private fun resolveLibrary(coordinate: MavenResolver.Coordinate, workspace: File, packageId: Int): PreparedLibrary? {
         resolvedLibraries.find { it.coord == coordinate }?.let { return it }
         val artifact = kotlinx.coroutines.runBlocking { MavenResolver.resolve(coordinate, File(filesDir, "maven_cache")) } ?: return null
-        val prepared = libraryPreparer.prepare(artifact, coordinate, workspace)
+        val prepared = libraryPreparer.prepare(artifact, coordinate, workspace, packageId)
         resolvedLibraries.add(prepared)
         return prepared
     }
@@ -366,7 +377,7 @@ class EditorActivity : AppCompatActivity() {
             .toList()
     }
 
-    private fun injectAndDraw(apkPath: String, libraries: List<PreparedLibrary> = emptyList()) {
+    private fun injectAndDraw(apkPath: String, libraries: List<PreparedLibrary> = emptyList(), projectDex: File? = null) {
         try {
             log("> Injecting APK...")
             val customAssetManager = AssetManager::class.java.getConstructor().newInstance()
@@ -375,28 +386,29 @@ class EditorActivity : AppCompatActivity() {
             addAssetPathMethod.invoke(customAssetManager, apkPath)
             addAssetPathMethod.invoke(customAssetManager, androidJarFile.absolutePath)
             addAssetPathMethod.invoke(customAssetManager, materialLibFile.absolutePath)
+            addAssetPathMethod.invoke(customAssetManager, applicationInfo.sourceDir)
             libraries.mapNotNull { it.staticResApk }.forEach { addAssetPathMethod.invoke(customAssetManager, it.absolutePath) }
 
             val customResources = Resources(customAssetManager, resources.displayMetrics, resources.configuration)
             val resId = customResources.getIdentifier("preview_layout", "layout", "com.google.android.material")
             if (resId == 0) { log("[ERROR] Layout not found.", true); return }
 
-            val dexPaths = libraries.mapNotNull { it.dexFile?.absolutePath }
+            val materialThemeId = customResources.getIdentifier("Theme.Material3.Light.NoActionBar", "style", "com.google.android.material")
+            log("materialThemeId = $materialThemeId (0x${materialThemeId.toString(16)})")
+
+            val dexPaths = libraries.mapNotNull { it.dexFile?.absolutePath } + listOfNotNull(projectDex?.absolutePath)
             val libraryClassLoader = if (dexPaths.isNotEmpty()) {
                 val optimizedDexDir = File(cacheDir, "dex_opt").apply { mkdirs() }
                 DexClassLoader(dexPaths.joinToString(File.pathSeparator), optimizedDexDir.absolutePath, null, this.classLoader)
             } else this.classLoader
 
-            val customContext = object : ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Light_NoActionBar) {
+            val baseThemeId = if (materialThemeId != 0) materialThemeId else android.R.style.Theme_DeviceDefault_Light_NoActionBar
+
+            val customContext = object : ContextThemeWrapper(this, baseThemeId) {
                 override fun getResources() = customResources
                 override fun getAssets() = customAssetManager
                 override fun getClassLoader() = libraryClassLoader
-                override fun getTheme(): Resources.Theme {
-                    val t = super.getTheme()
-                    val themeId = customResources.getIdentifier("Theme.Material3.Light.NoActionBar", "style", "com.google.android.material")
-                    if (themeId != 0) t.applyStyle(themeId, true)
-                    return t
-                }
+                override fun getTheme(): Resources.Theme = super.getTheme()
             }
 
             runOnUiThread {
@@ -1422,15 +1434,15 @@ class EditorActivity : AppCompatActivity() {
         val mainContainer = codeScrollContainer.parent as ViewGroup
         mainContainer.addView(tvConsole, mainContainer.indexOfChild(codeScrollContainer) + 1)
     }
-/*
-    private fun configureSymbolBar() {
-        listOf("{", "}", "<", ">", "/", "=", "\"", "(", ")", ";").forEach { s ->
-            val b = TextView(this).apply { text = s; textSize = 18f; setPadding(30, 10, 30, 10); setTextColor(Color.WHITE); setOnClickListener { editorCodeArea.text?.insert(editorCodeArea.selectionStart, s) } }
-            quickSymbolBar.addView(b)
+    /*
+        private fun configureSymbolBar() {
+            listOf("{", "}", "<", ">", "/", "=", "\"", "(", ")", ";").forEach { s ->
+                val b = TextView(this).apply { text = s; textSize = 18f; setPadding(30, 10, 30, 10); setTextColor(Color.WHITE); setOnClickListener { editorCodeArea.text?.insert(editorCodeArea.selectionStart, s) } }
+                quickSymbolBar.addView(b)
+            }
         }
-    }
 
-*/
+    */
     private suspend fun setupCompiler() {
         aapt2File = File(applicationInfo.nativeLibraryDir, "libaapt2.so")
         androidJarFile = File(filesDir, "android_framework_api33.jar")
@@ -1444,6 +1456,10 @@ class EditorActivity : AppCompatActivity() {
             aapt2File = aapt2File,
             androidJarFile = androidJarFile,
             runShell = { cmd -> runShell(cmd).let { LibraryPreparer.ShellResultLike(it.success, it.output, it.error) } },
+            log = { msg, err -> log(msg, err) }
+        )
+        projectSourceCompiler = ProjectSourceCompiler(
+            androidJarFile = androidJarFile,
             log = { msg, err -> log(msg, err) }
         )
     }

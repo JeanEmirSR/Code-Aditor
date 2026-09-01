@@ -11,6 +11,7 @@ data class PreparedLibrary(
     val coord: MavenResolver.Coordinate,
     val staticResApk: File?,
     val dexFile: File?,
+    val classesJar: File?,
 )
 
 class LibraryPreparer(
@@ -21,12 +22,12 @@ class LibraryPreparer(
 ) {
     data class ShellResultLike(val success: Boolean, val output: String, val error: String)
 
-    fun prepare(artifact: MavenResolver.ResolvedArtifact, coord: MavenResolver.Coordinate, workspace: File): PreparedLibrary {
+    fun prepare(artifact: MavenResolver.ResolvedArtifact, coord: MavenResolver.Coordinate, workspace: File, packageId: Int): PreparedLibrary {
         val libWorkDir = File(workspace, "libs/${coord.artifactId}").apply { mkdirs() }
 
         if (!artifact.isAar) {
             val dex = dexClassesJar(artifact.file, File(libWorkDir, "dex"))
-            return PreparedLibrary(coord, null, dex)
+            return PreparedLibrary(coord, null, dex, artifact.file)
         }
 
         val extractDir = File(libWorkDir, "extracted").apply { mkdirs() }
@@ -37,12 +38,12 @@ class LibraryPreparer(
         val manifest = File(extractDir, "AndroidManifest.xml")
 
         val staticApk = if (resDir != null && manifest.exists()) {
-            compileStaticResLib(coord, resDir, manifest, libWorkDir)
+            compileStaticResLib(coord, resDir, manifest, libWorkDir, packageId)
         } else null
 
         val dex = classesJar?.let { dexClassesJar(it, File(libWorkDir, "dex")) }
 
-        return PreparedLibrary(coord, staticApk, dex)
+        return PreparedLibrary(coord, staticApk, dex, classesJar)
     }
 
     private fun extractAar(aarFile: File, destDir: File) {
@@ -61,7 +62,7 @@ class LibraryPreparer(
         }
     }
 
-    private fun compileStaticResLib(coord: MavenResolver.Coordinate, resDir: File, manifest: File, workDir: File): File? {
+    private fun compileStaticResLib(coord: MavenResolver.Coordinate, resDir: File, manifest: File, workDir: File, packageId: Int): File? {
         val compiledZip = File(workDir, "compiled.zip")
         val outApk = File(workDir, "${coord.artifactId}_static.apk")
 
@@ -71,12 +72,14 @@ class LibraryPreparer(
             return null
         }
 
+        val hexId = "0x" + packageId.toString(16).padStart(2, '0')
         val link = runShell(
             "${aapt2File.absolutePath} link --static-lib " +
-                "-I ${androidJarFile.absolutePath} " +
-                "--manifest ${manifest.absolutePath} " +
-                "-o ${outApk.absolutePath} ${compiledZip.absolutePath} " +
-                "--auto-add-overlay --allow-reserved-package-id --non-constant-id"
+                    "-I ${androidJarFile.absolutePath} " +
+                    "--manifest ${manifest.absolutePath} " +
+                    "--package-id $hexId " +
+                    "-o ${outApk.absolutePath} ${compiledZip.absolutePath} " +
+                    "--auto-add-overlay --allow-reserved-package-id --non-constant-id"
         )
         if (!link.success) {
             log("[LIB ${coord.artifactId}] resource link failed: ${link.error}", true)
