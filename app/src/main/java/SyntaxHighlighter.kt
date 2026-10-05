@@ -28,6 +28,14 @@ class SyntaxHighlighter {
     private val jvmKeywords = Pattern.compile("\\b(package|import|class|interface|fun|val|var|if|else|for|while|when|return|private|public|protected|override|abstract|data|sealed|object|companion|typealias|as|is|in|throw|try|catch|finally|this|super|void|static|final|new|switch|case|break|continue|default|synchronized|volatile|transient|native|strictfp)\\b")
     private val jvmTypes = Pattern.compile("\\b(String|Int|Long|Double|Float|Boolean|Char|Byte|Short|Unit|Any|Nothing|Array|List|Set|Map|Integer|Object|View|Context|Bundle|LayoutInflater|ViewGroup|File|Editable)\\b")
 
+    // --- NUEVO: Dart ---
+    private val dartKeywords = Pattern.compile("\\b(abstract|as|assert|async|await|break|case|catch|class|const|continue|covariant|default|deferred|do|dynamic|else|enum|export|extends|extension|external|factory|false|final|finally|for|Function|get|hide|if|implements|import|in|interface|is|late|library|mixin|new|null|on|operator|part|required|rethrow|return|set|show|static|super|switch|sync|this|throw|true|try|typedef|var|void|while|with|yield)\\b")
+    private val dartTypes = Pattern.compile("\\b(int|double|String|bool|List|Set|Map|Runes|Symbol|Future|Stream|Iterable|Object|Null)\\b")
+
+    // --- NUEVO: Swift ---
+    private val swiftKeywords = Pattern.compile("\\b(actor|any|as|associatedtype|async|await|break|case|catch|class|continue|default|defer|deinit|do|dynamic|else|enum|extension|fallthrough|false|fileprivate|final|for|func|get|guard|if|import|in|indirect|infix|init|inout|internal|is|isolated|let|mutating|nil|nonisolated|open|operator|optional|override|postfix|prefix|private|protocol|public|repeat|required|rethrows|return|self|Self|set|some|static|struct|subscript|super|switch|throw|throws|true|try|typealias|unowned|var|weak|where|while)\\b")
+    private val swiftTypes = Pattern.compile("\\b(Int|Int8|Int16|Int32|Int64|UInt|UInt8|UInt16|UInt32|UInt64|Float|Double|Bool|String|Character|Optional|Array|Dictionary|Set|Any|AnyObject|Void)\\b")
+
     private val xmlTags = Pattern.compile("(?<=<)[\\w.:]+|(?<=</)[\\w.:]+|(?<=<)[\\w.:]+(?=/>)")
     private val xmlNamespace = Pattern.compile("\\b[\\w-]+(?=:)")
     private val xmlAttributes = Pattern.compile("\\b[\\w.:-]+(?=\\s*=)")
@@ -49,12 +57,10 @@ class SyntaxHighlighter {
 
         if (editable.isEmpty()) return
 
-
         val textSnapshot = editable.subSequence(safeStart, safeEnd).toString()
 
         when (extension.lowercase()) {
             "xml" -> {
-
                 highlightRange(editable, textSnapshot, xmlBrackets, colorXmlBracket, safeStart)
                 highlightRange(editable, textSnapshot, xmlTags, colorXmlTag, safeStart)
                 highlightRange(editable, textSnapshot, xmlNamespace, colorXmlNamespace, safeStart)
@@ -74,8 +80,23 @@ class SyntaxHighlighter {
                 highlightRange(editable, textSnapshot, patternFunctions, colorFunction, safeStart)
                 highlightRange(editable, textSnapshot, comments, colorComment, safeStart)
             }
+            // --- NUEVO: Dart ---
+            "dart" -> {
+                highlightRange(editable, textSnapshot, dartKeywords, colorKeyword, safeStart)
+                highlightRange(editable, textSnapshot, dartTypes, colorType, safeStart)
+                highlightRange(editable, textSnapshot, patternFunctions, colorFunction, safeStart)
+                highlightRange(editable, textSnapshot, comments, colorComment, safeStart)
+            }
+            // --- NUEVO: Swift ---
+            "swift" -> {
+                highlightRange(editable, textSnapshot, swiftKeywords, colorKeyword, safeStart)
+                highlightRange(editable, textSnapshot, swiftTypes, colorType, safeStart)
+                highlightRange(editable, textSnapshot, patternFunctions, colorFunction, safeStart)
+                highlightRange(editable, textSnapshot, comments, colorComment, safeStart)
+            }
         }
 
+        // Se aplica para todos los lenguajes al final
         highlightRange(editable, textSnapshot, strings, colorString, safeStart)
         highlightRange(editable, textSnapshot, numbers, colorNumber, safeStart)
     }
@@ -87,7 +108,6 @@ class SyntaxHighlighter {
         while (matcher.find()) {
             matchCount++
             if (matchCount > 200) break
-
 
             val matchStart = startOffset + matcher.start()
             val matchEnd = startOffset + matcher.end()
@@ -117,7 +137,17 @@ class SyntaxHighlighter {
                 colorPreprocessor to cppPreprocessor, colorFunction to patternFunctions,
                 colorComment to comments
             )
-            else -> mutableMapOf(
+            // --- NUEVO: Dart ---
+            "dart" -> mutableMapOf(
+                colorKeyword to dartKeywords, colorType to dartTypes,
+                colorFunction to patternFunctions, colorComment to comments
+            )
+            // --- NUEVO: Swift ---
+            "swift" -> mutableMapOf(
+                colorKeyword to swiftKeywords, colorType to swiftTypes,
+                colorFunction to patternFunctions, colorComment to comments
+            )
+            else -> mutableMapOf( // El caso por defecto sigue siendo JVM (Java/Kotlin)
                 colorKeyword to jvmKeywords, colorType to jvmTypes,
                 colorFunction to patternFunctions, colorComment to comments
             )
