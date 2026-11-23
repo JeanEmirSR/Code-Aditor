@@ -40,6 +40,7 @@ import dalvik.system.DexClassLoader
 import com.jeansr.androideditor.libs.LibraryPreparer
 import com.jeansr.androideditor.libs.PreparedLibrary
 import com.jeansr.androideditor.libs.MavenResolver
+import com.jeansr.androideditor.libs.FullApkBuilder
 import com.jeansr.androideditor.libs.ProjectSourceCompiler
 
 
@@ -82,6 +83,7 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var materialLibFile: File
     private lateinit var libraryPreparer: LibraryPreparer
     private lateinit var projectSourceCompiler: ProjectSourceCompiler
+    private lateinit var fullApkBuilder: FullApkBuilder
     private val resolvedLibraries = mutableListOf<PreparedLibrary>()
 
     private lateinit var gitPanel: LinearLayout
@@ -211,6 +213,7 @@ class EditorActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btnSave).setOnClickListener { saveActualFile() }
         findViewById<ImageButton>(R.id.btnPreview).setOnClickListener { switchPreview() }
+        findViewById<ImageButton>(R.id.btnBuildApk).setOnClickListener { buildFullApk() }
 
         //configureSymbolBar()
         setupTabsRecyclerView()
@@ -354,6 +357,71 @@ class EditorActivity : AppCompatActivity() {
             )
 
             withContext(Dispatchers.Main) { injectAndDraw(outputApk.absolutePath, preparedLibraries, projectDex) }
+        }
+    }
+
+    private fun buildFullApk() {
+        if (!::fullApkBuilder.isInitialized) return
+        log("\n--- [BUILD APK] ---")
+        lifecycleScope.launch(Dispatchers.IO) {
+            val tiempoInicio = System.currentTimeMillis()
+            try {
+                val workspace = File(cacheDir, "full_build_workspace").apply { deleteRecursively(); mkdirs() }
+                val buildResDir = File(workspace, "res")
+                val projResDir = File(projectRoot, "app/src/main/res")
+                if (projResDir.exists()) projResDir.copyRecursively(buildResDir, overwrite = true) else buildResDir.mkdirs()
+
+                val manifestFile = File(workspace, "AndroidManifest.xml")
+                val projManifest = File(projectRoot, "app/src/main/AndroidManifest.xml")
+                if (projManifest.exists()) projManifest.copyTo(manifestFile, overwrite = true)
+                else manifestFile.writeText("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\" package=\"com.preview.app\">\n    <uses-sdk android:minSdkVersion=\"26\" android:targetSdkVersion=\"33\" />\n    <application android:theme=\"@style/Theme.Material3.DayNight.NoActionBar\" />\n</manifest>")
+
+                log("> Resolving dependencies...")
+                val dependencyCoordinates = parseProjectDependencies()
+                val preparedLibraries = dependencyCoordinates.mapIndexedNotNull { index, coordinate ->
+                    resolveLibrary(coordinate, workspace, packageId = 0x03 + index)
+                }
+
+                log("> Compiling project sources...")
+                val projectDex = projectSourceCompiler.compile(
+                    sourceRoots = listOf(File(projectRoot, "app/src/main/java"), File(projectRoot, "app/src/main/kotlin")),
+                    classpathJars = preparedLibraries.mapNotNull { it.classesJar },
+                    workDir = workspace
+                )
+
+                val keystoreFile = File(filesDir, "debug.keystore")
+                if (!keystoreFile.exists()) assets.open("debug.keystore").use { it.copyTo(FileOutputStream(keystoreFile)) }
+
+                val materialDex = File(workspace, "material_classes.dex")
+                var materialDexReady = false
+                try {
+                    java.util.zip.ZipFile(materialLibFile).use { zip ->
+                        val entry = zip.getEntry("classes.dex")
+                        if (entry != null) { zip.getInputStream(entry).use { it.copyTo(materialDex.outputStream()) }; materialDexReady = true }
+                    }
+                } catch (_: Exception) { }
+
+                val outputDir = File(projectRoot, "app/build/outputs/apk").apply { mkdirs() }
+                val outputApk = File(outputDir, "app-debug.apk")
+
+                val ok = fullApkBuilder.build(
+                    FullApkBuilder.BuildInput(
+                        workspace = workspace,
+                        manifestFile = manifestFile,
+                        resDir = buildResDir,
+                        extraLibApks = listOfNotNull(materialLibFile) + preparedLibraries.mapNotNull { it.staticResApk },
+                        projectDex = projectDex,
+                        libDexes = listOfNotNull(if (materialDexReady) materialDex else null) + preparedLibraries.mapNotNull { it.dexFile },
+                        keystoreFile = keystoreFile,
+                        keystorePassword = "android",
+                        outputApk = outputApk
+                    )
+                )
+                if (ok) log("> [SUCCESS] Installable APK: ${outputApk.absolutePath} (${outputApk.length() / 1024} KB, ${System.currentTimeMillis() - tiempoInicio}ms)")
+                else log("> [BUILD FAILED] Review console errors.", true)
+            } catch (e: Exception) {
+                log("> [BUILD ERROR] ${e.message}", true)
+            }
         }
     }
 
@@ -1460,6 +1528,12 @@ class EditorActivity : AppCompatActivity() {
         )
         projectSourceCompiler = ProjectSourceCompiler(
             androidJarFile = androidJarFile,
+            log = { msg, err -> log(msg, err) }
+        )
+        fullApkBuilder = FullApkBuilder(
+            aapt2File = aapt2File,
+            androidJarFile = androidJarFile,
+            runShell = { cmd -> runShell(cmd).let { FullApkBuilder.ShellResult(it.success, it.output, it.error) } },
             log = { msg, err -> log(msg, err) }
         )
     }
