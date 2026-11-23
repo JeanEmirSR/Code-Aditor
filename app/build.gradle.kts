@@ -60,4 +60,5 @@ dependencies {
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
     implementation("com.android.tools:r8:8.13.19")
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.2.0")
+    implementation("com.android.tools.build:apksig:8.5.2")
 }
