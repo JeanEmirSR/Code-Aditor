@@ -166,6 +166,15 @@
                 android:src="@drawable/ic_preview"
                 android:visibility="gone"
                 app:tint="#D4D4D4" />
+
+            <ImageButton
+                android:id="@+id/btnBuildApk"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackground"
+                android:padding="10dp"
+                android:src="@drawable/ic_build"
+                app:tint="#4EC9B0" />
         </LinearLayout>
 
         <FrameLayout
