@@ -75,7 +75,7 @@ class GithubControlActivity : AppCompatActivity() {
                         repos.add(
                             GithubRepo(
                                 name = obj.getString("name"),
-                                description = if (!obj.isNull("description")) obj.getString("description") else "Sin descripción",
+                                description = if (!obj.isNull("description")) obj.getString("description") else "No description",
                                 cloneUrl = obj.getString("clone_url")
                             )
                         )
