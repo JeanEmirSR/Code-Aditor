@@ -17,7 +17,7 @@ class PreviewXml @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val phoneCard = CardView(context)
-    val contentArea = FrameLayout(context) // Público para que la Activity lo use
+    val contentArea = FrameLayout(context) // Public so the Activity can use it
     private val sideBar = LinearLayout(context)
 
     var onModeChanged: ((modo: String) -> Unit)? = null
