@@ -118,7 +118,7 @@ class EditorActivity : AppCompatActivity() {
 
     // State variables to prevent multiple menus and actions from opening
     private var fileOnClipboard: File? = null
-    private var clipboardAccion: String = "" // Guardará "copiar" o "cortar"
+    private var clipboardAccion: String = "" // Holds "copy" or "cut"
 
     private var mainPopup: PopupWindow? = null
     private var newPopup: PopupWindow? = null
@@ -489,7 +489,7 @@ class EditorActivity : AppCompatActivity() {
                     inflater.factory2 = object : LayoutInflater.Factory2 {
                         override fun onCreateView(parent: View?, name: String, context: Context, attrs: android.util.AttributeSet): View? {
                             if (name == "androidx.camera.view.PreviewView" || name == "SurfaceView" || name == "TextureView") {
-                                return TextView(context).apply { text = "📷 Vista de Cámara"; setBackgroundColor(Color.DKGRAY); setTextColor(Color.WHITE); gravity = Gravity.CENTER }
+                                return TextView(context).apply { text = "Camera Preview"; setBackgroundColor(Color.DKGRAY); setTextColor(Color.WHITE); gravity = Gravity.CENTER }
                             }
                             if (name == "fragment" || name == "androidx.fragment.app.FragmentContainerView") {
                                 return TextView(context).apply { text = "🧩 Fragmento"; setBackgroundColor(Color.LTGRAY); setTextColor(Color.DKGRAY); gravity = Gravity.CENTER }
@@ -1010,14 +1010,14 @@ class EditorActivity : AppCompatActivity() {
         )
         mainPopup?.elevation = 16f
 
-        // --- LÓGICA DE DIRECTORIOS ---
+        // --- DIRECTORY LOGIC ---
         val destinyDirectory = if (archivoDestino.isDirectory) archivoDestino else archivoDestino.parentFile
-        // --- EVENTOS DEL MENÚ PRINCIPAL ---
-        // 1. Desplegar el submenú "Nuevo"
+        // --- MAIN MENU EVENTS ---
+        // 1. Deploy the "New" submenu
         menuView.findViewById<View>(R.id.itemMenuNuevo).setOnClickListener { viewNuevo ->
             showNewSubMenu(viewNuevo, destinyDirectory)
         }
-        // 2. Acciones estándar
+        // 2. Standard actions
         menuView.findViewById<View>(R.id.itemMenuCortar).setOnClickListener {
             mainPopup?.dismiss()
             runFileAction("cut", archivoDestino)
@@ -1039,7 +1039,7 @@ class EditorActivity : AppCompatActivity() {
             runFileAction("Delete", archivoDestino)
         }
 
-        // Mostrar menú pegado al ítem del RecyclerView
+        // Show menu anchored to the RecyclerView item
         mainPopup?.showAsDropDown(anchorView, 20, -anchorView.height / 2)
     }
 
@@ -1143,7 +1143,7 @@ class EditorActivity : AppCompatActivity() {
                     File(fatherDirectory, nombre).mkdirs()
                 }
             }
-            refreshFileTree() // Tu función para recargar el RecyclerView
+            refreshFileTree() // Your function to reload the RecyclerView
         } catch (e: Exception) {
             log("Error creating: ${e.message}", true)
         }
@@ -1601,7 +1601,7 @@ class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: 
 
         holder.itemView.setOnClickListener { onClick(file) }
 
-        // ── CORREGIDO: Capturamos 'view' y se la pasamos a la función ──
+        // ── FIXED: Capture 'view' and pass it to the function ──
         holder.itemView.setOnLongClickListener { view ->
             onLongClick(view, file)
             true
@@ -1613,7 +1613,7 @@ class FileAdapter(private val onClick: (File) -> Unit, private val onLongClick: 
     class ViewHolder(view: View, val arrowIcon: ImageView, val mainIcon: ImageView, val textView: TextView) : RecyclerView.ViewHolder(view)
 }
 // --- CLASE ADAPTER COMPLETE ---
-class TabAdapter(private val onTabClick: (File) -> Unit, private val onTabClose: (File) -> Unit) : RecyclerView.Adapter<TabAdapter.TabViewHolder>() { // <--- Esta línea es la clave
+class TabAdapter(private val onTabClick: (File) -> Unit, private val onTabClose: (File) -> Unit) : RecyclerView.Adapter<TabAdapter.TabViewHolder>() { // <--- This line is the key
 
     var openTabs = mutableListOf<File>()
     var activeFile: File? = null
